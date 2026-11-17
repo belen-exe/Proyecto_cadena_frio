@@ -33,10 +33,30 @@
     {
       "type": "wokwi-ntc-temperature-sensor",
       "id": "ntc1",
-      "top": 150,
-      "left": 250,
+      "top": 120,
+      "left": 220,
       "attrs": {
         "temperature": "5",
+        "beta": "3950"
+      }
+    },
+    {
+      "type": "wokwi-ntc-temperature-sensor",
+      "id": "ntc2",
+      "top": 220,
+      "left": 220,
+      "attrs": {
+        "temperature": "12",
+        "beta": "3950"
+      }
+    },
+    {
+      "type": "wokwi-ntc-temperature-sensor",
+      "id": "ntc3",
+      "top": 320,
+      "left": 220,
+      "attrs": {
+        "temperature": "7",
         "beta": "3950"
       }
     }
@@ -48,7 +68,15 @@
 
     ["esp:3V3", "ntc1:VCC", "red", []],
     ["esp:GND.1", "ntc1:GND", "black", []],
-    ["esp:D34", "ntc1:OUT", "blue", []]
+    ["esp:34", "ntc1:OUT", "blue", []],
+
+    ["esp:3V3", "ntc2:VCC", "red", []],
+    ["esp:GND.1", "ntc2:GND", "black", []],
+    ["esp:35", "ntc2:OUT", "blue", []],
+
+    ["esp:3V3", "ntc3:VCC", "red", []],
+    ["esp:GND.1", "ntc3:GND", "black", []],
+    ["esp:32", "ntc3:OUT", "blue", []]
   ],
   "dependencies": {}
 }
