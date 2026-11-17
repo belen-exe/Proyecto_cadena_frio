@@ -29,12 +29,26 @@
       "attrs": {
         "value": "220"
       }
+    },
+    {
+      "type": "wokwi-ntc-temperature-sensor",
+      "id": "ntc1",
+      "top": 150,
+      "left": 250,
+      "attrs": {
+        "temperature": "5",
+        "beta": "3950"
+      }
     }
   ],
   "connections": [
     ["esp:2", "r1:1", "green", []],
     ["r1:2", "led1:A", "green", []],
-    ["led1:C", "esp:GND.1", "black", []]
+    ["led1:C", "esp:GND.1", "black", []],
+
+    ["esp:3V3", "ntc1:VCC", "red", []],
+    ["esp:GND.1", "ntc1:GND", "black", []],
+    ["esp:D34", "ntc1:OUT", "blue", []]
   ],
   "dependencies": {}
 }
