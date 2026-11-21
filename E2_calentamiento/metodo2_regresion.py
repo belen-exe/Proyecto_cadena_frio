@@ -1,3 +1,15 @@
+# ==========================================
+# METODO 2 (R9): regresion matricial del modelo termico discreto
+#
+# Pendiente de adaptar a los datos del simulador E2 (enfriamiento 2 h +
+# >= 45 min a ambiente). Hoy usa datos de 24 h del simulador anterior.
+#
+# Lee  archivo/datos_modelo_termico.csv   (SIMULADO, simulador anterior)
+# Crea archivo/predicciones_regresion.csv
+# Se puede ejecutar desde cualquier carpeta: las rutas son relativas al repo.
+# ==========================================
+
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -7,7 +19,10 @@ import matplotlib.pyplot as plt
 # 1. CONFIGURACION
 # ==========================================
 
-ARCHIVO = "datos_modelo_termico.csv"
+CARPETA_ARCHIVO = Path(__file__).resolve().parents[1] / "archivo"
+
+ARCHIVO = CARPETA_ARCHIVO / "datos_modelo_termico.csv"
+ARCHIVO_SALIDA = CARPETA_ARCHIVO / "predicciones_regresion.csv"
 
 # ==========================================
 # 2. CARGAR DATOS
@@ -173,11 +188,11 @@ print(f"R2:   {R2:.4f}")
 # ==========================================
 
 df_test.to_csv(
-    "predicciones_regresion.csv",
+    ARCHIVO_SALIDA,
     index=False
 )
 
-print("\nArchivo generado: predicciones_regresion.csv")
+print(f"\nArchivo generado: {ARCHIVO_SALIDA}")
 
 # ==========================================
 # 11. GRAFICA REAL VS PREDICHA

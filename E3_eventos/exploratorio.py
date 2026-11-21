@@ -1,213 +1,213 @@
+"""
+Análisis exploratorio de los datos del Experimento E3 (datos SIMULADOS).
 
-import pandas as pd
+Lee (de E3_eventos/datos/):
+  entrenamiento.csv, validacion.csv, prueba.csv  -> t_s, adc_1, adc_2, adc_3, Origen
+  tabla_eventos.csv                              -> tipo, sensor, t_inicio_s, t_fin_s, Origen
+
+NO lee VERDAD_NO_USAR.json.
+
+Este script solo describe los datos: no elige componentes, umbrales ni ningún
+parámetro del detector (eso será R12, y solo con datos de entrenamiento).
+
+Las temperaturas en °C se obtienen con la conversión β NOMINAL de
+comun/modelo_sensor.py: es una CONVERSIÓN PROVISIONAL, SIN CALIBRAR.
+
+Genera en E3_eventos/resultados/:
+  exploratorio_entrenamiento.png, exploratorio_validacion.png,
+  exploratorio_prueba.png, exploratorio_histograma.png
+
+Uso:  python exploratorio.py   (desde cualquier carpeta)
+"""
+
+import sys
+from pathlib import Path
+
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
+import numpy as np
+import pandas as pd
+
+# Permite importar comun/ sin instalar nada.
+RAIZ_REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(RAIZ_REPO))
+
+from comun import modelo_sensor as ms  # noqa: E402
 
 # ==========================================
-# CONFIGURACION
+# CONFIGURACIÓN
 # ==========================================
 
-ARCHIVO = "datos_sinteticos_cadena_frio.csv"
+CARPETA = Path(__file__).resolve().parent
+CARPETA_DATOS = CARPETA / "datos"
+CARPETA_RESULTADOS = CARPETA / "resultados"
+
+SESIONES = ["entrenamiento", "validacion", "prueba"]
 
 TEMP_MIN = 2.0
 TEMP_MAX = 8.0
+
+# Lecturas en los extremos del ADC (mismos límites que el firmware).
+ADC_LIMITE_INFERIOR = ms.ADC_LIMITE_INFERIOR
+ADC_LIMITE_SUPERIOR = ms.ADC_LIMITE_SUPERIOR
+
+# Mostrar las ventanas de las gráficas además de guardarlas.
+MOSTRAR_GRAFICAS = True
+
+ETIQUETA_CONVERSION = "conversión provisional, sin calibrar"
+
+COLORES_EVENTO = {
+    "apertura": "tab:orange",
+    "desconexion": "tab:red",
+}
 
 # ==========================================
 # CARGAR DATOS
 # ==========================================
 
-df = pd.read_csv(ARCHIVO)
 
-df["FechaHora"] = pd.to_datetime(df["FechaHora"])
+def cargar_sesion(nombre):
+    df = pd.read_csv(CARPETA_DATOS / f"{nombre}.csv")
+    canales_adc = [c for c in df.columns if c.startswith("adc_")]
+    return df, canales_adc
 
-print("\n========== INFORMACION GENERAL ==========")
 
-print(f"Total de registros: {len(df)}")
-print(f"Sensores encontrados: {df['Sensor'].nunique()}")
-print(f"Periodo: {df['FechaHora'].min()} - {df['FechaHora'].max()}")
+datos = {}
+for nombre in SESIONES:
+    datos[nombre] = cargar_sesion(nombre)
 
-print("\nValores faltantes:")
-print(df.isnull().sum())
-
-# ==========================================
-# ESTADISTICAS POR SENSOR
-# ==========================================
-
-print("\n========== ESTADISTICAS POR SENSOR ==========")
-
-estadisticas = df.groupby("Sensor")["Temperatura_C"].agg(
-    ["mean", "min", "max", "std"]
-)
-
-estadisticas.columns = [
-    "Promedio_C",
-    "Minimo_C",
-    "Maximo_C",
-    "Desviacion_C"
-]
-
-print(estadisticas.round(2))
+eventos = pd.read_csv(CARPETA_DATOS / "tabla_eventos.csv")
 
 # ==========================================
-# DISTRIBUCION DE ESTADOS
+# INFORMACIÓN GENERAL Y PÉRDIDA DE MUESTRAS
 # ==========================================
 
-print("\n========== ESTADOS DEL SISTEMA ==========")
+print("\n========== INFORMACIÓN GENERAL (datos SIMULADOS) ==========")
 
-print(df["Estado"].value_counts())
+for nombre, (df, canales_adc) in datos.items():
+    t = df["t_s"].to_numpy()
+    ts = float(np.median(np.diff(t)))
+    duracion = t[-1] - t[0] + ts
+    esperadas = int(round(duracion / ts))
+    perdida = 100 * (esperadas - len(df)) / esperadas
 
-print("\nPorcentaje de cada estado:")
-print(
-    (df["Estado"].value_counts(normalize=True) * 100).round(2)
-)
-
-# ==========================================
-# ANALISIS DE ALARMAS
-# ==========================================
-
-alarmas = df[df["Estado"] == "ALARMA"]
-
-print("\n========== ANALISIS DE ALARMAS ==========")
-
-print(f"Total de alarmas: {len(alarmas)}")
-
-if not alarmas.empty:
-
-    print("\nPrimeras alarmas detectadas:")
-
-    print(
-        alarmas[
-            ["FechaHora", "Sensor", "Temperatura_C"]
-        ].head(10)
-    )
-
-    print("\nAlarmas por sensor:")
-    print(alarmas.groupby("Sensor").size())
+    print(f"\n[{nombre}]")
+    print(f"  Registros: {len(df)}   Canales: {len(canales_adc)}")
+    print(f"  Duración: {duracion / 60:.1f} min   Ts (mediana): {ts:.3f} s")
+    print(f"  Muestras esperadas: {esperadas}   Pérdida de muestras: {perdida:.2f} %")
+    print(f"  Origen: {', '.join(df['Origen'].unique())}")
+    print(f"  Valores faltantes: {int(df.isnull().sum().sum())}")
 
 # ==========================================
-# ANALISIS DE FALLAS
+# ESTADÍSTICAS POR SENSOR (ADC y °C provisional)
 # ==========================================
 
-fallas = df[df["Estado_sensor"] != "OK"]
+print("\n========== ESTADÍSTICAS POR SENSOR ==========")
 
-print("\n========== FALLAS DE SENSORES ==========")
+for nombre, (df, canales_adc) in datos.items():
+    print(f"\n[{nombre}] cuentas ADC")
+    print(df[canales_adc].agg(["mean", "min", "max", "std"]).T.round(2))
 
-print(f"Total de registros con fallas: {len(fallas)}")
+    temperaturas = pd.DataFrame({
+        c.replace("adc_", "T_"): ms.adc_a_temperatura_beta(df[c]) for c in canales_adc
+    })
+    print(f"[{nombre}] °C ({ETIQUETA_CONVERSION})")
+    print(temperaturas.agg(["mean", "min", "max", "std"]).T.round(3))
 
-print(fallas.groupby("Sensor").size())
+    extremos = (
+        (df[canales_adc] <= ADC_LIMITE_INFERIOR) | (df[canales_adc] >= ADC_LIMITE_SUPERIOR)
+    ).sum()
+    print(f"[{nombre}] lecturas en los extremos del ADC (posible desconexión):")
+    print(extremos.to_string())
 
 # ==========================================
-# GRAFICA 1: TEMPERATURA EN EL TIEMPO
+# EVENTOS REGISTRADOS (sesión de prueba)
 # ==========================================
 
-fig, ax = plt.subplots(figsize=(14, 6))
+print("\n========== EVENTOS REGISTRADOS (prueba) ==========")
+print(eventos.to_string(index=False))
 
-for sensor in sorted(df["Sensor"].unique()):
+# ==========================================
+# GRÁFICAS
+# ==========================================
 
-    datos = df[df["Sensor"] == sensor]
+CARPETA_RESULTADOS.mkdir(parents=True, exist_ok=True)
 
-    ax.plot(
-        datos["FechaHora"],
-        datos["Temperatura_C"],
-        label=f"Sensor {sensor}",
-        linewidth=1
-    )
 
-# Zona permitida
-ax.axhspan(
-    TEMP_MIN,
-    TEMP_MAX,
-    alpha=0.15,
-    label="Rango permitido (2-8 °C)"
-)
-
-# Limites
-ax.axhline(TEMP_MIN, linestyle="--", linewidth=1)
-ax.axhline(TEMP_MAX, linestyle="--", linewidth=1)
-
-# Marcar intervalos de apertura
-aperturas = df[df["Tapa_abierta"]].groupby(
-    "Tiempo_min"
-).size()
-
-if not aperturas.empty:
-
-    minutos_apertura = aperturas.index
-
-    for minuto in minutos_apertura:
-
-        inicio = df.loc[
-            df["Tiempo_min"] == minuto,
-            "FechaHora"
-        ].iloc[0]
-
+def marcar_eventos(ax, tabla_eventos):
+    """Sombrea cada evento de la tabla; una sola entrada de leyenda por tipo."""
+    tipos_rotulados = set()
+    for _, ev in tabla_eventos.iterrows():
+        tipo = ev["tipo"]
+        etiqueta = None
+        if tipo not in tipos_rotulados:
+            etiqueta = "Apertura de tapa" if tipo == "apertura" else "Desconexión de sensor"
+            tipos_rotulados.add(tipo)
         ax.axvspan(
-            inicio,
-            inicio + pd.Timedelta(minutes=1),
-            color="orange",
-            alpha=0.08
+            ev["t_inicio_s"] / 60,
+            ev["t_fin_s"] / 60,
+            color=COLORES_EVENTO.get(tipo, "gray"),
+            alpha=0.25,
+            label=etiqueta,
         )
 
-ax.set_title("Evolucion de temperatura de la cadena de frio")
-ax.set_xlabel("Tiempo")
-ax.set_ylabel("Temperatura (°C)")
 
-ax.xaxis.set_major_formatter(
-    mdates.DateFormatter("%H:%M")
-)
+# Gráfica 1: ADC y temperatura provisional en el tiempo, una figura por sesión
+for nombre, (df, canales_adc) in datos.items():
+    fig, (ax_adc, ax_t) = plt.subplots(2, 1, figsize=(13, 8), sharex=True)
+    minutos = df["t_s"] / 60
 
-ax.legend()
-ax.grid(True)
-fig.autofmt_xdate()
-plt.tight_layout()
-plt.show()
+    for c in canales_adc:
+        sensor = c.replace("adc_", "")
+        ax_adc.plot(minutos, df[c], linewidth=0.8, label=f"Sensor {sensor}")
+        ax_t.plot(
+            minutos, ms.adc_a_temperatura_beta(df[c]), linewidth=0.8, label=f"Sensor {sensor}"
+        )
 
-# ==========================================
-# GRAFICA 2: DISTRIBUCION DE ESTADOS
-# ==========================================
+    if nombre == "prueba":
+        marcar_eventos(ax_adc, eventos)
+        marcar_eventos(ax_t, eventos)
 
-conteo_estados = df["Estado"].value_counts()
+    ax_t.axhspan(TEMP_MIN, TEMP_MAX, color="tab:green", alpha=0.08, label="Rango permitido (2-8 °C)")
 
-plt.figure(figsize=(8, 5))
+    ax_adc.set_title(f"E3 - sesión de {nombre} - datos SIMULADOS")
+    ax_adc.set_ylabel("Cuenta ADC (0-4095)")
+    ax_adc.legend(loc="upper right", fontsize=8)
+    ax_adc.grid(True)
 
-conteo_estados.plot(
-    kind="bar",
-    rot=0
-)
+    ax_t.set_title(f"Temperatura ({ETIQUETA_CONVERSION}) - SIMULADO")
+    ax_t.set_xlabel("Tiempo (min)")
+    ax_t.set_ylabel("Temperatura (°C)")
+    ax_t.legend(loc="upper right", fontsize=8)
+    ax_t.grid(True)
 
-plt.title("Cantidad de registros por estado")
-plt.xlabel("Estado")
-plt.ylabel("Cantidad de registros")
-plt.grid(axis="y")
-plt.tight_layout()
-plt.show()
+    fig.tight_layout()
+    ruta = CARPETA_RESULTADOS / f"exploratorio_{nombre}.png"
+    fig.savefig(ruta, dpi=120)
+    print(f"Gráfica guardada: {ruta.relative_to(RAIZ_REPO)}")
 
-# ==========================================
-# GRAFICA 3: DISTRIBUCION DE TEMPERATURAS
-# ==========================================
+# Gráfica 2: distribución de temperaturas en operación normal (entrenamiento)
+df, canales_adc = datos["entrenamiento"]
+fig, ax = plt.subplots(figsize=(9, 5))
 
-plt.figure(figsize=(9, 5))
-
-for sensor in sorted(df["Sensor"].unique()):
-
-    datos = df[df["Sensor"] == sensor]
-
-    plt.hist(
-        datos["Temperatura_C"].dropna(),
+for c in canales_adc:
+    ax.hist(
+        ms.adc_a_temperatura_beta(df[c]),
         bins=35,
         alpha=0.45,
-        label=f"Sensor {sensor}"
+        label=f"Sensor {c.replace('adc_', '')}",
     )
 
-plt.axvline(TEMP_MIN, linestyle="--", label="Mínimo permitido")
-plt.axvline(TEMP_MAX, linestyle="--", label="Máximo permitido")
+ax.set_title(f"Distribución de temperaturas - entrenamiento - SIMULADO\n({ETIQUETA_CONVERSION})")
+ax.set_xlabel("Temperatura (°C)")
+ax.set_ylabel("Frecuencia")
+ax.legend()
+ax.grid(True)
+fig.tight_layout()
+ruta = CARPETA_RESULTADOS / "exploratorio_histograma.png"
+fig.savefig(ruta, dpi=120)
+print(f"Gráfica guardada: {ruta.relative_to(RAIZ_REPO)}")
 
-plt.title("Distribucion de temperaturas por sensor")
-plt.xlabel("Temperatura (°C)")
-plt.ylabel("Frecuencia")
-plt.legend()
-plt.grid()
-plt.tight_layout()
-plt.show()
+if MOSTRAR_GRAFICAS and plt.get_backend().lower() != "agg":
+    plt.show()
 
-print("\nAnalisis finalizado.")
+print("\nAnálisis exploratorio finalizado.")
