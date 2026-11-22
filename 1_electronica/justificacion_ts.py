@@ -28,6 +28,7 @@ RAIZ_REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ_REPO))
 
 from comun import modelo_sensor as ms  # noqa: E402
+from comun.estadistica import ajustar_mco  # noqa: E402
 
 CARPETA_E3 = RAIZ_REPO / "E3_eventos" / "datos"
 CARPETA_RESULTADOS = Path(__file__).resolve().parent / "resultados"
@@ -80,8 +81,7 @@ for _, ev in eventos[eventos["tipo"] == "apertura"].iterrows():
     for c in canales:
         y = temp_prueba.loc[dentro, c].to_numpy()
         a = np.column_stack([np.ones_like(t), t])
-        coef = np.linalg.lstsq(a, y, rcond=None)[0]
-        fila[c] = coef[1]  # °C/s
+        fila[c] = ajustar_mco(a, y)["theta"][1]  # °C/s
     pendientes.append(fila)
 pendientes = pd.DataFrame(pendientes)
 # Canal más expuesto y su pendiente media (más robusta al ruido que el máximo)

@@ -30,13 +30,13 @@ de distribución a 14 clientes.
 Proyecto_cadena_frio/
 ├── README.md                 Este archivo
 ├── requirements.txt          Librerías de Python (numpy, pandas, matplotlib)
-├── comun/                    Modelo del sensor simulado (T → R → V → ADC), usado por todos los simuladores
+├── comun/                    Modelo del sensor simulado (T → ADC), estructuras de calibración y mínimos cuadrados propios
 ├── 0_diseno/                 Diseño del circuito, resistor fijo, resolución y esquemático (R1)
 ├── 1_electronica/            Justificación de Ts y verificación de pérdida de muestras (R2), montaje (R3)
 │   ├── firmware_esp32/       Proyecto PlatformIO + Wokwi del ESP32
 │   └── pruebas_simulacion/   Capturas del monitor serie del firmware
-├── E1_calibracion/           Experimento E1 y calibración ADC → °C (R4–R7) — PENDIENTE
-├── E2_calentamiento/         Experimento E2 y modelo térmico con PSO (R8–R10) — PENDIENTE (hay un borrador)
+├── E1_calibracion/           Experimento E1 y calibración ADC → °C (R4–R7)
+├── E2_calentamiento/         Experimento E2, modelo térmico con PSO y diseño del vehículo (R8–R10)
 ├── E3_eventos/               Experimento E3: datos normales y eventos (R11) y, más adelante, el detector (R12–R14)
 ├── rutas/                    Planeación de rutas (R15–R18) — PENDIENTE
 └── archivo/                  Simuladores y CSV antiguos, solo para trazabilidad
@@ -44,12 +44,12 @@ Proyecto_cadena_frio/
 
 | Carpeta | Requisitos | Estado |
 |---|---|---|
-| `comun/` | Soporte de R4, R8, R11 (modelo del sensor simulado) | Hecho |
+| `comun/` | Soporte de R4–R11 (modelo del sensor, estructuras de calibración, mínimos cuadrados, t de Student) | Hecho |
 | `0_diseno/` | R1 | Hecho |
 | `1_electronica/` | R2, R3 | Parcial (faltan la captura de 10 min y la captura de pantalla de Wokwi) |
 | `1_electronica/` | R19, R20, R21 | PENDIENTE (necesitan la calibración de E1 y el detector) |
-| `E1_calibracion/` | R4, R5, R6, R7 | PENDIENTE |
-| `E2_calentamiento/` | R8, R9, R10 | PENDIENTE (borrador del segundo método de R9) |
+| `E1_calibracion/` | R4, R5, R6, R7 | Hecho (simulado) |
+| `E2_calentamiento/` | R8, R9, R10 | Hecho (simulado) |
 | `E3_eventos/` | R11 (datos y tabla de eventos) | Hecho (simulado) |
 | `E3_eventos/` | R12, R13, R14 (detector) | PENDIENTE |
 | `rutas/` | R15, R16, R17, R18 | PENDIENTE |
@@ -79,9 +79,10 @@ E1_calibracion   ──► coeficientes de calibración ADC → °C por canal
                1_electronica/firmware_esp32  (calibración + detector en el ESP32)
 ```
 
-Hoy existe solo el primer eslabón (`comun/`) y los datos de E3. Mientras no exista
-la calibración de E1, el análisis de E3 usa la conversión β nominal, marcada como
-**"conversión provisional, sin calibrar"**. `rutas/` es independiente de los demás.
+Hoy existen `comun/`, E1 (que produce `E1_calibracion/resultados/coeficientes_calibracion.json`)
+y E2, que ya convierte con esos coeficientes. El exploratorio de E3 y la justificación
+de Ts todavía usan la conversión β nominal, marcada como **"conversión provisional,
+sin calibrar"**. `rutas/` es independiente de los demás.
 
 ## 3. Instalación
 
@@ -105,15 +106,24 @@ repositorio, en este orden:
 | 4 | `python 0_diseno/diseno_circuito.py` | Cálculo del resistor fijo, resolución y esquemático (R1) | `0_diseno/resultados/memoria_calculo_R1.md`, `tabla_resolucion.csv`, `curvas_divisor.png`, `resolucion.png`, `esquematico.png` |
 | 5 | `python 1_electronica/justificacion_ts.py` | Justificación numérica de Ts (R2); usa los datos de E3 | `1_electronica/resultados/justificacion_Ts.md` |
 | 6 | `python 1_electronica/verificar_perdida.py [captura.csv]` | Pérdida de muestras de una captura del firmware (R2); necesita la captura de Wokwi | `1_electronica/resultados/perdida_muestras.md` |
-| 7 | `python E2_calentamiento/metodo2_regresion.py` | Borrador del segundo método de R9 sobre los datos de 24 h del simulador **anterior** | `archivo/predicciones_regresion.csv` |
+| 7 | `python E1_calibracion/simulador_E1.py` | Simula el experimento E1 (R4) | `E1_calibracion/datos/calibracion_E1.csv`, `instrumento_referencia.json`, `VERDAD_NO_USAR.json` |
+| 8 | `python E1_calibracion/calibracion.py` | Selección de modelo, ajuste y RMSE (R5–R7) | `E1_calibracion/resultados/coeficientes_calibracion.json`, `resumen_E1.md`, tablas CSV y gráficas |
+| 9 | `python E2_calentamiento/simulador_E2.py` | Simula el experimento E2 (R8) | `E2_calentamiento/datos/calentamiento_E2.csv`, `ambiente_E2.csv`, `eventos_E2.csv`, `descripcion_contenedor.json`, `VERDAD_NO_USAR.json` |
+| 10 | `python E2_calentamiento/identificacion.py` | PSO + regresión + IC 95 % de k (R9). **Necesita el paso 8** | `E2_calentamiento/resultados/parametros_identificados.json`, `resumen_R9.md`, gráficas |
+| 11 | `python E2_calentamiento/diseno_vehiculo.py` | Cálculos de R10. **Necesita el paso 10** | `E2_calentamiento/resultados/resumen_R10.md`, `diseno_R10.png` |
+| 12 | `python E1_calibracion/comparar_con_verdad.py` y `python E2_calentamiento/comparar_con_verdad.py` | (Opcional) Verificación final contra la verdad de la simulación | Solo imprime |
+
+Autopruebas rápidas de las piezas propias: `python comun/estadistica.py` (cuantiles t
+contra la tabla) y `python E2_calentamiento/pso.py` (PSO en la función de Rosenbrock).
 
 Los simuladores usan semillas fijas: al volver a ejecutarlos se obtienen
 exactamente los mismos archivos. Los scripts que abren gráficas esperan a que se
 cierren las ventanas; para ejecutarlos sin ventanas use la variable de entorno
 `MPLBACKEND=Agg`.
 
-`archivo/datos_sinteticos.py` es el simulador antiguo; no hace falta ejecutarlo
-(escribe `datos_sinteticos_cadena_frio.csv` en la carpeta desde donde se lance).
+En `archivo/` quedan el simulador antiguo (`datos_sinteticos.py`) y el primer borrador
+del método 2 (`regresion_matricial_24h.py`, que lee y escribe en `archivo/`). No hace
+falta ejecutarlos.
 
 ## 5. Firmware en Wokwi
 
@@ -169,6 +179,45 @@ La conversión a °C del firmware es **provisional** (β nominal) hasta que exis
 calibración de E1.
 
 ## 6. Diccionario de datos
+
+### `E1_calibracion/datos/calibracion_E1.csv`
+
+Una fila por lectura. Los 3 sensores y la referencia están en el mismo baño.
+
+| Columna | Unidad | Significado |
+|---|---|---|
+| `punto` | — | Número del escalón de temperatura (1–38) |
+| `tipo` | — | `calibracion` (se usa para ajustar) o `prueba` (solo para evaluar); fijado antes de medir |
+| `muestra` | — | Número de lectura dentro del escalón (1–10) |
+| `t_s` | s | Tiempo desde el inicio del experimento |
+| `T_ref_C` | °C | Lectura del termómetro de referencia del escalón (resolución 0,1 °C) |
+| `adc_1`, `adc_2`, `adc_3` | cuentas (0–4095) | Lectura cruda de cada canal |
+| `Origen` | — | Siempre `SIMULADO` |
+
+`instrumento_referencia.json`: resolución, exactitud, incertidumbre estándar (°C) y fuente.
+
+### `E1_calibracion/resultados/coeficientes_calibracion.json`
+
+`estructura` (modelo elegido), `ecuacion`, y por canal: `theta` (coeficientes),
+`error_estandar`, `cov`, `XtX_inv`, `s` y `gl`. Para usarlo:
+`comun.calibracion.adc_a_temperatura_calibrada(adc, canal, coeficientes)`.
+
+### `E2_calentamiento/datos/`
+
+| Archivo | Columna | Unidad | Significado |
+|---|---|---|---|
+| `calentamiento_E2.csv` | `t_s` | s | Tiempo desde que la caja entra a la nevera (Ts = 1 s) |
+| | `adc_1`, `adc_2`, `adc_3` | cuentas | Lectura cruda de cada canal |
+| | `Origen` | — | `SIMULADO` |
+| `ambiente_E2.csv` | `t_s` | s | Instante de la anotación (cada 60 s) |
+| | `T_amb_ref_C` | °C | Temperatura ambiente con el termómetro de referencia (aire de la nevera y luego de la habitación) |
+| | `Origen` | — | `SIMULADO` |
+| `eventos_E2.csv` | `evento` | — | `inicio_en_nevera`, `extraccion`, `fin_registro` |
+| | `t_s` | s | Instante del evento |
+| | `Origen` | — | `SIMULADO` |
+
+`descripcion_contenedor.json`: material, dimensiones interiores [m], espesor de pared [m],
+masas [kg] y calores específicos [J/(kg·K)] de la caja y la carga.
 
 ### `E3_eventos/datos/entrenamiento.csv`, `validacion.csv`, `prueba.csv`
 
@@ -243,14 +292,16 @@ hay una corrida grabada con el formato actual.
 
 Como los datos son simulados, el simulador conoce la verdad: las constantes de
 tiempo, las temperaturas reales en cada instante, los parámetros exactos de cada
-sensor y las semillas. Todo eso se guarda en `E3_eventos/datos/VERDAD_NO_USAR.json`.
+sensor y las semillas. Todo eso se guarda en un `VERDAD_NO_USAR.json` dentro de la
+carpeta `datos/` de E1, E2 y E3.
 
 **Ningún análisis puede leer ese archivo.** En un experimento real esa información
 no existiría: el sistema solo ve cuentas del ADC y la tabla de eventos anotada
 durante el experimento. Si un ajuste, un umbral o una elección de componentes usara
 la verdad, los resultados quedarían inflados y no serían defendibles. El archivo
 solo sirve para que el equipo verifique, al final, que el simulador hizo lo que se
-esperaba.
+esperaba. Los únicos scripts que lo leen son los `comparar_con_verdad.py`, y no
+alimentan ningún resultado.
 
 ## 8. Limitaciones de la simulación
 
@@ -271,5 +322,12 @@ esperaba.
   2 min`, para que el aire junto al sensor vuelva a la temperatura del contenido
   tras cerrar la tapa. El contenido no se calienta durante una apertura de 30 s,
   y la respuesta distinta de cada sensor es un factor supuesto (1,0; 0,6; 0,35).
+- **E2 y E3 no comparten la misma constante de tiempo**: E2 identifica para la caja
+  τ ≈ 221 min (calculado de su descripción física), mientras que el simulador de E3
+  conserva el valor original τ cerrada = 2000 min. Conviene unificarlos usando en E3
+  el τ identificado en R9.
+- **E2 es de primer orden por construcción**: el simulador usa el mismo tipo de modelo
+  que se identifica, así que el ajuste es casi perfecto. En una caja real habría
+  dinámicas más lentas (carga, paredes) y residuos con estructura.
 - **Nevera y cocina supuestas**: nevera 4,5 ± 0,5 °C con periodo de 30 min; cocina
   25 + 3·sen(2π·minuto/1440) °C.

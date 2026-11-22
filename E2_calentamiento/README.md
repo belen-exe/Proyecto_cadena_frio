@@ -1,22 +1,48 @@
-# E2_calentamiento — Experimento E2 y dinámica térmica
+# E2_calentamiento — Experimento E2 y dinámica térmica (R8–R10)
 
-**Estado: PENDIENTE** (solo existe un borrador del "segundo método", ver abajo)
+**Estado: Hecho** (datos SIMULADOS). **Requiere haber ejecutado antes E1**, porque
+convierte los ADC a °C con `E1_calibracion/resultados/coeficientes_calibracion.json`.
 
-**Requisitos que cubrirá:** R8, R9, R10.
+## Cómo ejecutarlo (desde la raíz del repositorio)
 
-**Entradas:**
-- Modelo del sensor de `comun/modelo_sensor.py`.
-- Coeficientes de calibración de `E1_calibracion/resultados/`.
-- Datos simulados de E2: enfriamiento ≥ 2 h en la nevera y ≥ 45 min a temperatura
-  ambiente, con la temperatura ambiente registrada.
+```bash
+python E2_calentamiento/simulador_E2.py          # 1. R8: datos crudos
+python E2_calentamiento/identificacion.py        # 2. R9: PSO + regresión + IC 95 %
+python E2_calentamiento/diseno_vehiculo.py       # 3. R10: cálculos de diseño
+python E2_calentamiento/comparar_con_verdad.py   # 4. (opcional) verificación final
+python E2_calentamiento/pso.py                   # (opcional) autoprueba del PSO con Rosenbrock
+```
 
-**Salidas previstas:**
-- `datos/`: datos crudos de E2 (`Origen = SIMULADO`) y descripción del contenedor.
-- `resultados/`: parámetros del modelo dinámico estimados con PSO propio y con un
-  segundo método, intervalo al 95 % de la rapidez de calentamiento, gráficas de
-  datos vs. modelo y de residuos, y los cálculos de diseño del vehículo (R10).
+## Archivos
 
-**Archivo existente:**
-- `metodo2_regresion.py`: borrador del segundo método (regresión matricial de
-  T(t) a partir de T(t−1), el ambiente y la tapa). Hoy usa los datos de 24 h del
-  simulador anterior (`archivo/datos_modelo_termico.csv`); falta adaptarlo a E2.
+| Archivo | Qué es |
+|---|---|
+| `simulador_E2.py` | Caja con la carga en la nevera 150 min y luego 60 min a temperatura ambiente; registro continuo a Ts = 1 s |
+| `pso.py` | PSO de implementación propia (inercia decreciente 0,9 → 0,4; c1 = c2 = 2) |
+| `metodo2_regresion.py` | Segundo método: regresión lineal de la ecuación discreta exacta (promedios de 1 min) |
+| `identificacion.py` | R9: ajusta k y T0 con el PSO (5 semillas), contrasta con la regresión y calcula el IC 95 % de k |
+| `diseno_vehiculo.py` | R10: k máximo admisible, factor de mejora y modificación térmica |
+| `comparar_con_verdad.py` | Único script que lee `VERDAD_NO_USAR.json`; solo verifica al final |
+| `datos/calentamiento_E2.csv` | `t_s, adc_1, adc_2, adc_3, Origen` |
+| `datos/ambiente_E2.csv` | Temperatura ambiente anotada con el termómetro de referencia cada 60 s |
+| `datos/eventos_E2.csv` | Instantes de inicio, extracción y fin |
+| `datos/descripcion_contenedor.json` | Material, dimensiones, espesor de pared y masas (R8) |
+| `resultados/parametros_identificados.json` | k, τ, T0 e intervalos de ambos métodos. Lo lee `diseno_vehiculo.py` |
+| `resultados/resumen_R9.md`, `resumen_R10.md` | Memorias de cálculo con todos los números |
+| `resultados/*.png` | Registro completo, datos vs modelo, residuos, convergencia del PSO y diseño de R10 |
+
+## Modelo
+
+dT/dt = k·(T_amb − T), con la solución exacta por paso
+T[n+1] = T_amb + (T[n] − T_amb)·e^(−k·Δt). Aquí **k** es la rapidez de calentamiento
+y τ = 1/k.
+
+## Qué revisar para saber que funciona
+
+- `identificacion.py`: las 5 semillas del PSO dan el mismo k; la diferencia con la
+  regresión es de pocas décimas de % y los intervalos se solapan.
+- `diseno_vehiculo.py`: (i) k_max ≈ 0,00093 min⁻¹; (ii) factor de mejora ≈ 4,9;
+  (iii) la opción recomendada imprime `CUMPLE` (t hasta 8 °C ≥ 180 min).
+- `comparar_con_verdad.py`: error de k < 1 % y el IC 95 % total contiene el k real.
+  El IC "solo ruido" del PSO no lo contiene, y por eso se agrega la incertidumbre
+  de los instrumentos.

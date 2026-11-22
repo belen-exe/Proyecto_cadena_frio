@@ -1,255 +1,77 @@
-# ==========================================
-# METODO 2 (R9): regresion matricial del modelo termico discreto
-#
-# Pendiente de adaptar a los datos del simulador E2 (enfriamiento 2 h +
-# >= 45 min a ambiente). Hoy usa datos de 24 h del simulador anterior.
-#
-# Lee  archivo/datos_modelo_termico.csv   (SIMULADO, simulador anterior)
-# Crea archivo/predicciones_regresion.csv
-# Se puede ejecutar desde cualquier carpeta: las rutas son relativas al repo.
-# ==========================================
+"""
+Método 2 (R9): identificación de k por regresión lineal de la ecuación discreta.
 
-from pathlib import Path
+Solución exacta del modelo de Newton en un paso Δt con ambiente constante:
+
+    T[n+1] = T_amb[n] + (T[n] − T_amb[n])·exp(−k·Δt)
+
+Restando T[n] a ambos lados:
+
+    ΔT[n] = T[n+1] − T[n] = b · (T_amb[n] − T[n]),     b = 1 − exp(−k·Δt)
+
+Es una regresión lineal por el origen en un solo parámetro b, que se resuelve con
+el mínimos cuadrados PROPIO de comun/estadistica.py. Luego:
+
+    k = −ln(1 − b) / Δt,     σ_k ≈ σ_b / ((1 − b)·Δt)   (propagación lineal)
+
+Se trabaja con promedios de 1 min: así el ruido de T[n] (que también aparece en
+el regresor) queda muy por debajo de la variación de (T_amb − T), y el sesgo por
+error en las variables es despreciable.
+
+Este método es INDEPENDIENTE del PSO: no simula la trayectoria completa ni usa T0,
+solo relaciona cada paso con el siguiente (error de ecuación).
+"""
 
 import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
 
-# ==========================================
-# 1. CONFIGURACION
-# ==========================================
-
-CARPETA_ARCHIVO = Path(__file__).resolve().parents[1] / "archivo"
-
-ARCHIVO = CARPETA_ARCHIVO / "datos_modelo_termico.csv"
-ARCHIVO_SALIDA = CARPETA_ARCHIVO / "predicciones_regresion.csv"
-
-# ==========================================
-# 2. CARGAR DATOS
-# ==========================================
-
-df = pd.read_csv(ARCHIVO)
-
-df = df.sort_values(
-    ["Sensor", "Tiempo_min"]
-).copy()
-
-# ==========================================
-# 3. CREAR VARIABLE OBJETIVO
-# ==========================================
-
-# Temperatura del minuto anterior,
-# correspondiente al mismo sensor.
-
-df["Temperatura_anterior"] = (
-    df.groupby("Sensor")["Temperatura_C"].shift(1)
-)
-
-# ==========================================
-# 4. CONSTRUIR VARIABLES
-# ==========================================
-
-df["Tapa_abierta"] = (
-    df["Tapa_abierta"].astype(int)
-)
-
-df["Sensor_2"] = (df["Sensor"] == 2).astype(int)
-df["Sensor_3"] = (df["Sensor"] == 3).astype(int)
-
-df["Temperatura_anterior_x_tapa"] = (
-    df["Temperatura_anterior"] * df["Tapa_abierta"]
-)
-
-df["Ambiente_x_tapa"] = (
-    df["Temperatura_ambiente_C"] * df["Tapa_abierta"]
-)
-
-# Eliminar registros incompletos
-df = df.dropna(
-    subset=[
-        "Temperatura_C",
-        "Temperatura_anterior",
-        "Temperatura_ambiente_C"
-    ]
-).copy()
-
-# ==========================================
-# 5. DEFINIR MATRIZ X Y VECTOR Y
-# ==========================================
-
-columnas_X = [
-    "Temperatura_anterior",
-    "Temperatura_ambiente_C",
-    "Tapa_abierta",
-    "Temperatura_anterior_x_tapa",
-    "Ambiente_x_tapa",
-    "Sensor_2",
-    "Sensor_3"
-]
-
-X = df[columnas_X].to_numpy(dtype=float)
-
-# Agregar columna de unos para el intercepto
-X = np.column_stack([
-    np.ones(len(X)),
-    X
-])
-
-# Temperatura actual: es la que queremos estimar
-Y = df["Temperatura_C"].to_numpy(dtype=float)
-
-tiempos = df["Tiempo_min"].to_numpy()
-
-# ==========================================
-# 6. SEPARAR ENTRENAMIENTO Y PRUEBA
-# ==========================================
-
-tiempo_corte = int(
-    df["Tiempo_min"].max() * 0.70
-)
-
-indices_entrenamiento = tiempos <= tiempo_corte
-indices_prueba = tiempos > tiempo_corte
-
-X_train = X[indices_entrenamiento]
-Y_train = Y[indices_entrenamiento]
-
-X_test = X[indices_prueba]
-Y_test = Y[indices_prueba]
-
-df_test = df.loc[indices_prueba].copy()
-
-print("========== DIMENSIONES ==========")
-
-print("Matriz X entrenamiento:", X_train.shape)
-print("Vector Y entrenamiento:", Y_train.shape)
-
-print("Matriz X prueba:", X_test.shape)
-print("Vector Y prueba:", Y_test.shape)
-
-# ==========================================
-# 7. REGRESION MATRICIAL
-# ==========================================
-
-# Beta = pseudoinversa(X) * Y
-
-beta = np.linalg.pinv(X_train) @ Y_train
-
-print("\n========== COEFICIENTES ==========")
-
-nombres = ["Intercepto"] + columnas_X
-
-for nombre, coeficiente in zip(nombres, beta):
-
-    print(f"{nombre}: {coeficiente:.6f}")
-
-# ==========================================
-# 8. PREDICCIONES
-# ==========================================
-
-Y_pred = X_test @ beta
-
-df_test["Temperatura_real"] = Y_test
-df_test["Temperatura_predicha"] = Y_pred
-
-df_test["Error"] = (
-    df_test["Temperatura_real"]
-    - df_test["Temperatura_predicha"]
-)
-
-# ==========================================
-# 9. METRICAS DE EVALUACION
-# ==========================================
-
-error_absoluto = np.abs(Y_test - Y_pred)
-
-MAE = np.mean(error_absoluto)
-
-RMSE = np.sqrt(
-    np.mean((Y_test - Y_pred) ** 2)
-)
-
-SS_res = np.sum((Y_test - Y_pred) ** 2)
-
-SS_tot = np.sum(
-    (Y_test - np.mean(Y_test)) ** 2
-)
-
-R2 = 1 - (SS_res / SS_tot)
-
-print("\n========== EVALUACION ==========")
-
-print(f"MAE:  {MAE:.4f} °C")
-print(f"RMSE: {RMSE:.4f} °C")
-print(f"R2:   {R2:.4f}")
-
-# ==========================================
-# 10. GUARDAR PREDICCIONES
-# ==========================================
-
-df_test.to_csv(
-    ARCHIVO_SALIDA,
-    index=False
-)
-
-print(f"\nArchivo generado: {ARCHIVO_SALIDA}")
-
-# ==========================================
-# 11. GRAFICA REAL VS PREDICHA
-# ==========================================
-
-sensor_grafica = 1
-
-datos_grafica = df_test[
-    df_test["Sensor"] == sensor_grafica
-]
-
-plt.figure(figsize=(13, 5))
-
-plt.plot(
-    datos_grafica["Tiempo_min"],
-    datos_grafica["Temperatura_real"],
-    label="Temperatura real",
-    linewidth=1.5
-)
-
-plt.plot(
-    datos_grafica["Tiempo_min"],
-    datos_grafica["Temperatura_predicha"],
-    label="Temperatura predicha",
-    linestyle="--",
-    linewidth=1.5
-)
-
-plt.title(
-    f"Regresion matricial - Sensor {sensor_grafica}"
-)
-
-plt.xlabel("Tiempo (minutos)")
-plt.ylabel("Temperatura (°C)")
-
-plt.legend()
-plt.grid()
-plt.tight_layout()
-plt.show()
-
-# ==========================================
-# 12. GRAFICA DE ERRORES
-# ==========================================
-
-plt.figure(figsize=(9, 5))
-
-plt.hist(
-    df_test["Error"],
-    bins=35
-)
-
-plt.title("Distribucion de errores de prediccion")
-plt.xlabel("Error (°C)")
-plt.ylabel("Frecuencia")
-
-plt.grid()
-plt.tight_layout()
-plt.show()
-
-print("\nRegresion matricial finalizada.")
+from comun.estadistica import ajustar_mco, t_cuantil
+
+
+def autocorrelacion_lag1(residuos):
+    r = np.asarray(residuos) - np.mean(residuos)
+    return float(np.sum(r[1:] * r[:-1]) / np.sum(r * r))
+
+
+def estimar_k_regresion(t_min, temperatura, t_amb, confianza=0.95):
+    """
+    t_min, temperatura, t_amb: series uniformes (promedios de 1 min).
+    Devuelve k [1/min], su IC y los diagnósticos del ajuste.
+    """
+    t_min = np.asarray(t_min, dtype=float)
+    temperatura = np.asarray(temperatura, dtype=float)
+    t_amb = np.asarray(t_amb, dtype=float)
+    dt = float(np.median(np.diff(t_min)))
+
+    delta = temperatura[1:] - temperatura[:-1]
+    # Ambiente promedio en el intervalo [n, n+1]
+    regresor = 0.5 * (t_amb[1:] + t_amb[:-1]) - temperatura[:-1]
+
+    ajuste = ajustar_mco(regresor[:, None], delta)
+    b = float(ajuste["theta"][0])
+    se_b = float(ajuste["error_estandar"][0])
+
+    # Corrección por autocorrelación de los residuos (tamaño de muestra efectivo)
+    rho = autocorrelacion_lag1(ajuste["residuos"])
+    rho_usado = max(rho, 0.0)
+    inflacion = np.sqrt((1 + rho_usado) / (1 - rho_usado))
+    n_efectivo = ajuste["n"] * (1 - rho_usado) / (1 + rho_usado)
+    gl = max(n_efectivo - 1, 1)
+
+    k = -np.log(1 - b) / dt
+    se_k = se_b * inflacion / ((1 - b) * dt)
+    t = t_cuantil(0.5 + confianza / 2, gl)
+
+    return {
+        "k_1_por_min": k,
+        "se_k": se_k,
+        "IC95": (k - t * se_k, k + t * se_k),
+        "b": b,
+        "se_b": se_b,
+        "dt_min": dt,
+        "n": ajuste["n"],
+        "rho_lag1": rho,
+        "n_efectivo": n_efectivo,
+        "s_residual_C": ajuste["s"],
+        "residuos": ajuste["residuos"],
+        "diagnostico": ajuste["diagnostico"],
+    }

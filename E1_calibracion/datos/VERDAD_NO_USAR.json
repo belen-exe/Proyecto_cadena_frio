@@ -1,0 +1,255 @@
+{
+  "ADVERTENCIA": "Valores reales de la simulación. Ningún análisis debe leer este archivo.",
+  "Origen": "SIMULADO",
+  "semilla": 101,
+  "fluctuacion_bano_C": 0.02,
+  "sigma_error_referencia_C": 0.05,
+  "parametros_sensores": [
+    {
+      "r0_ohm": 9935.786962735086,
+      "beta_k": 3961.0531400914974,
+      "r_fijo_ohm": 9993.453680228697
+    },
+    {
+      "r0_ohm": 9974.100105421609,
+      "beta_k": 3938.5384694104623,
+      "r_fijo_ohm": 10058.103649170653
+    },
+    {
+      "r0_ohm": 10081.028767335434,
+      "beta_k": 3924.5109021540206,
+      "r_fijo_ohm": 10030.556960537027
+    }
+  ],
+  "ruido_adc_cuentas": 2.0,
+  "puntos": [
+    {
+      "punto": 1,
+      "tipo": "calibracion",
+      "T_nominal_C": 0.3,
+      "T_bano_real_C": 0.5661
+    },
+    {
+      "punto": 2,
+      "tipo": "prueba",
+      "T_nominal_C": 0.8,
+      "T_bano_real_C": 0.7952
+    },
+    {
+      "punto": 3,
+      "tipo": "calibracion",
+      "T_nominal_C": 1.5,
+      "T_bano_real_C": 1.7286
+    },
+    {
+      "punto": 4,
+      "tipo": "calibracion",
+      "T_nominal_C": 2.2,
+      "T_bano_real_C": 1.9464
+    },
+    {
+      "punto": 5,
+      "tipo": "calibracion",
+      "T_nominal_C": 3.0,
+      "T_bano_real_C": 3.1223
+    },
+    {
+      "punto": 6,
+      "tipo": "prueba",
+      "T_nominal_C": 3.8,
+      "T_bano_real_C": 3.8305
+    },
+    {
+      "punto": 7,
+      "tipo": "calibracion",
+      "T_nominal_C": 4.5,
+      "T_bano_real_C": 4.6677
+    },
+    {
+      "punto": 8,
+      "tipo": "calibracion",
+      "T_nominal_C": 6.0,
+      "T_bano_real_C": 6.0813
+    },
+    {
+      "punto": 9,
+      "tipo": "prueba",
+      "T_nominal_C": 6.8,
+      "T_bano_real_C": 6.7703
+    },
+    {
+      "punto": 10,
+      "tipo": "calibracion",
+      "T_nominal_C": 7.5,
+      "T_bano_real_C": 7.5005
+    },
+    {
+      "punto": 11,
+      "tipo": "calibracion",
+      "T_nominal_C": 8.2,
+      "T_bano_real_C": 8.3817
+    },
+    {
+      "punto": 12,
+      "tipo": "calibracion",
+      "T_nominal_C": 9.0,
+      "T_bano_real_C": 9.0605
+    },
+    {
+      "punto": 13,
+      "tipo": "prueba",
+      "T_nominal_C": 9.6,
+      "T_bano_real_C": 9.7468
+    },
+    {
+      "punto": 14,
+      "tipo": "calibracion",
+      "T_nominal_C": 10.5,
+      "T_bano_real_C": 10.5893
+    },
+    {
+      "punto": 15,
+      "tipo": "calibracion",
+      "T_nominal_C": 12.0,
+      "T_bano_real_C": 12.0261
+    },
+    {
+      "punto": 16,
+      "tipo": "calibracion",
+      "T_nominal_C": 14.0,
+      "T_bano_real_C": 13.9961
+    },
+    {
+      "punto": 17,
+      "tipo": "prueba",
+      "T_nominal_C": 15.0,
+      "T_bano_real_C": 14.9833
+    },
+    {
+      "punto": 18,
+      "tipo": "calibracion",
+      "T_nominal_C": 16.0,
+      "T_bano_real_C": 15.7751
+    },
+    {
+      "punto": 19,
+      "tipo": "calibracion",
+      "T_nominal_C": 18.0,
+      "T_bano_real_C": 17.7451
+    },
+    {
+      "punto": 20,
+      "tipo": "calibracion",
+      "T_nominal_C": 20.0,
+      "T_bano_real_C": 19.776
+    },
+    {
+      "punto": 21,
+      "tipo": "prueba",
+      "T_nominal_C": 21.0,
+      "T_bano_real_C": 21.2014
+    },
+    {
+      "punto": 22,
+      "tipo": "calibracion",
+      "T_nominal_C": 22.0,
+      "T_bano_real_C": 21.7522
+    },
+    {
+      "punto": 23,
+      "tipo": "calibracion",
+      "T_nominal_C": 24.0,
+      "T_bano_real_C": 23.7218
+    },
+    {
+      "punto": 24,
+      "tipo": "calibracion",
+      "T_nominal_C": 26.0,
+      "T_bano_real_C": 25.7589
+    },
+    {
+      "punto": 25,
+      "tipo": "prueba",
+      "T_nominal_C": 27.0,
+      "T_bano_real_C": 26.8177
+    },
+    {
+      "punto": 26,
+      "tipo": "calibracion",
+      "T_nominal_C": 28.0,
+      "T_bano_real_C": 27.8093
+    },
+    {
+      "punto": 27,
+      "tipo": "calibracion",
+      "T_nominal_C": 30.0,
+      "T_bano_real_C": 29.7166
+    },
+    {
+      "punto": 28,
+      "tipo": "calibracion",
+      "T_nominal_C": 32.0,
+      "T_bano_real_C": 32.0059
+    },
+    {
+      "punto": 29,
+      "tipo": "prueba",
+      "T_nominal_C": 33.0,
+      "T_bano_real_C": 32.9154
+    },
+    {
+      "punto": 30,
+      "tipo": "calibracion",
+      "T_nominal_C": 34.0,
+      "T_bano_real_C": 33.7509
+    },
+    {
+      "punto": 31,
+      "tipo": "calibracion",
+      "T_nominal_C": 36.0,
+      "T_bano_real_C": 35.9854
+    },
+    {
+      "punto": 32,
+      "tipo": "calibracion",
+      "T_nominal_C": 38.0,
+      "T_bano_real_C": 37.9915
+    },
+    {
+      "punto": 33,
+      "tipo": "prueba",
+      "T_nominal_C": 39.0,
+      "T_bano_real_C": 39.0503
+    },
+    {
+      "punto": 34,
+      "tipo": "calibracion",
+      "T_nominal_C": 40.0,
+      "T_bano_real_C": 40.189
+    },
+    {
+      "punto": 35,
+      "tipo": "calibracion",
+      "T_nominal_C": 42.0,
+      "T_bano_real_C": 41.9036
+    },
+    {
+      "punto": 36,
+      "tipo": "prueba",
+      "T_nominal_C": 43.5,
+      "T_bano_real_C": 43.4171
+    },
+    {
+      "punto": 37,
+      "tipo": "calibracion",
+      "T_nominal_C": 44.0,
+      "T_bano_real_C": 44.1261
+    },
+    {
+      "punto": 38,
+      "tipo": "calibracion",
+      "T_nominal_C": 45.0,
+      "T_bano_real_C": 45.0435
+    }
+  ]
+}
