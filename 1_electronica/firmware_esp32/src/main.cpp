@@ -33,7 +33,8 @@ const int NTC_PINS[NUM_SENSORES] = {
 // PERIODO DE MUESTREO
 // -------------------------------
 
-// Ts = 1000 ms. La justificacion numerica de Ts (R2) esta PENDIENTE.
+// Ts = 1000 ms. Justificacion numerica (R2): 1_electronica/resultados/justificacion_Ts.md
+// (intervalo admisible ~10 ms <= Ts <= 3 s, generado por justificacion_ts.py).
 const unsigned long TS_MS = 1000;
 
 // -------------------------------

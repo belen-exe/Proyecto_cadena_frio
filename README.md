@@ -6,14 +6,14 @@ calibración de los sensores, modelo de calentamiento del contenedor, detección
 anomalías (apertura de tapa y desconexión de un sensor) y planeación de las rutas
 de distribución a 14 clientes.
 
-> **TODO EL PROYECTO ES SIMULADO**, con autorización del profesor:
+> **TODO EL PROYECTO ES SIMULADO**
 > - el circuito y el firmware del ESP32 corren en el simulador **Wokwi**;
 > - los datos "experimentales" (E1, E2, E3) se generan con scripts de **Python**.
 >
 > Todo dato generado lleva la columna `Origen = SIMULADO`, y las gráficas dicen
 > "SIMULADO" en el título.
 
-### Conceptos mínimos (para quien no viene de electrónica)
+### Conceptos mínimos
 
 - **Termistor NTC**: resistencia que baja cuando sube la temperatura.
 - **Divisor de voltaje**: el NTC va en serie con un resistor fijo; el voltaje en el
@@ -31,8 +31,8 @@ Proyecto_cadena_frio/
 ├── README.md                 Este archivo
 ├── requirements.txt          Librerías de Python (numpy, pandas, matplotlib)
 ├── comun/                    Modelo del sensor simulado (T → R → V → ADC), usado por todos los simuladores
-├── 0_diseno/                 Diseño del circuito y resistor fijo (R1) — PENDIENTE
-├── 1_electronica/
+├── 0_diseno/                 Diseño del circuito, resistor fijo, resolución y esquemático (R1)
+├── 1_electronica/            Justificación de Ts y verificación de pérdida de muestras (R2), montaje (R3)
 │   ├── firmware_esp32/       Proyecto PlatformIO + Wokwi del ESP32
 │   └── pruebas_simulacion/   Capturas del monitor serie del firmware
 ├── E1_calibracion/           Experimento E1 y calibración ADC → °C (R4–R7) — PENDIENTE
@@ -45,8 +45,9 @@ Proyecto_cadena_frio/
 | Carpeta | Requisitos | Estado |
 |---|---|---|
 | `comun/` | Soporte de R4, R8, R11 (modelo del sensor simulado) | Hecho |
-| `0_diseno/` | R1 | PENDIENTE |
-| `1_electronica/` | R2, R3, R19, R20, R21 | Parcial |
+| `0_diseno/` | R1 | Hecho |
+| `1_electronica/` | R2, R3 | Parcial (faltan la captura de 10 min y la captura de pantalla de Wokwi) |
+| `1_electronica/` | R19, R20, R21 | PENDIENTE (necesitan la calibración de E1 y el detector) |
 | `E1_calibracion/` | R4, R5, R6, R7 | PENDIENTE |
 | `E2_calentamiento/` | R8, R9, R10 | PENDIENTE (borrador del segundo método de R9) |
 | `E3_eventos/` | R11 (datos y tabla de eventos) | Hecho (simulado) |
@@ -55,9 +56,9 @@ Proyecto_cadena_frio/
 | Todo el repositorio | R22 (informe y reproducibilidad) | Parcial |
 
 Detalle de lo "Parcial" en `1_electronica/`: el firmware ya lee los 3 canales con
-Ts = 1000 ms y emite CSV; falta la justificación numérica de Ts, el CSV de prueba
-de 10 minutos, la calibración propia dentro del ESP32 (R19) y la validación cruzada
-ESP32–Python (R20).
+Ts = 1000 ms y emite CSV, y Ts está justificado numéricamente. Falta que el equipo
+grabe la captura de 10 minutos en Wokwi (y la verifique con `verificar_perdida.py`)
+y tome la captura de pantalla del montaje. Ver `1_electronica/README.md`.
 
 ## 2. Flujo de datos entre carpetas
 
@@ -101,7 +102,10 @@ repositorio, en este orden:
 | 1 | `python comun/modelo_sensor.py` | (Opcional) Imprime los parámetros de los 3 sensores simulados y la cuenta ADC en algunas temperaturas | Ninguno |
 | 2 | `python E3_eventos/simulador_E3.py` | Simula las tres sesiones de E3 | `E3_eventos/datos/entrenamiento.csv`, `validacion.csv`, `prueba.csv`, `tabla_eventos.csv`, `VERDAD_NO_USAR.json` |
 | 3 | `python E3_eventos/exploratorio.py` | Estadísticas y gráficas de E3 (ADC y °C provisional, con los eventos sombreados) | `E3_eventos/resultados/exploratorio_entrenamiento.png`, `exploratorio_validacion.png`, `exploratorio_prueba.png`, `exploratorio_histograma.png` |
-| 4 | `python E2_calentamiento/metodo2_regresion.py` | Borrador del segundo método de R9 sobre los datos de 24 h del simulador **anterior** | `archivo/predicciones_regresion.csv` |
+| 4 | `python 0_diseno/diseno_circuito.py` | Cálculo del resistor fijo, resolución y esquemático (R1) | `0_diseno/resultados/memoria_calculo_R1.md`, `tabla_resolucion.csv`, `curvas_divisor.png`, `resolucion.png`, `esquematico.png` |
+| 5 | `python 1_electronica/justificacion_ts.py` | Justificación numérica de Ts (R2); usa los datos de E3 | `1_electronica/resultados/justificacion_Ts.md` |
+| 6 | `python 1_electronica/verificar_perdida.py [captura.csv]` | Pérdida de muestras de una captura del firmware (R2); necesita la captura de Wokwi | `1_electronica/resultados/perdida_muestras.md` |
+| 7 | `python E2_calentamiento/metodo2_regresion.py` | Borrador del segundo método de R9 sobre los datos de 24 h del simulador **anterior** | `archivo/predicciones_regresion.csv` |
 
 Los simuladores usan semillas fijas: al volver a ejecutarlos se obtienen
 exactamente los mismos archivos. Los scripts que abren gráficas esperan a que se
@@ -128,7 +132,9 @@ Cada canal es un módulo `wokwi-ntc-temperature-sensor`, que ya incluye el NTC
 | LED rojo (`led1`) | ánodo / cátodo | resistor 220 Ω / GND |
 
 GPIO34, 35 y 32 pertenecen al ADC1 del ESP32. El circuito completo está en
-`1_electronica/firmware_esp32/diagram.json`.
+`1_electronica/firmware_esp32/diagram.json`; el esquemático en
+`0_diseno/resultados/esquematico.png`, y la lista de materiales y los pasos para
+reproducir el montaje en `1_electronica/README.md`.
 
 ### Opción A: VS Code + PlatformIO + extensión Wokwi
 
@@ -253,8 +259,9 @@ esperaba.
   temperatura se fija a mano con un deslizador, así que las series de tiempo de
   E1–E3 se generan en Python, no en Wokwi.
 - **Resistor fijo interno de 10 kΩ**: en Wokwi el resistor del divisor viene dentro
-  del módulo y no se puede cambiar. El valor que se elija en R1 solo podrá
-  evaluarse en los cálculos y en el modelo de Python.
+  del módulo y no se puede cambiar. El cálculo de R1 da como óptimo ≈ 13,4 kΩ
+  (12 kΩ en la serie E12); se adoptó 10 kΩ, que conserva el 98,3 % de la excursión
+  de voltaje óptima.
 - **ADC ideal**: Wokwi y `comun/modelo_sensor.py` usan un ADC lineal. El ADC real
   del ESP32 no es lineal cerca de los extremos y es más ruidoso.
 - **El ruido es un supuesto**: 0,08 °C de ruido de temperatura y 2 cuentas de ruido
