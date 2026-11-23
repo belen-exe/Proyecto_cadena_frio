@@ -110,6 +110,13 @@ def main():
           f"perdida: {perdida_pct:.3f} %")
     print(f"Periodo: media {periodos.mean():.2f} ms, max {periodos.max()} ms, huecos {huecos}")
     print("R2:", "CUMPLE" if (cumple_duracion and cumple_perdida) else "NO CUMPLE")
+    if not cumple_duracion:
+        faltan_s = DURACION_MIN_S - duracion_s
+        print(f"  -> Registro demasiado corto: faltan {faltan_s:.0f} s de tiempo SIMULADO. "
+              f"Deje correr Wokwi hasta que t_ms >= {tiempos[0] + DURACION_MIN_S * 1000} "
+              f"(Wokwi puede ir más lento que el reloj real).")
+    if not cumple_perdida:
+        print(f"  -> Pérdida {perdida_pct:.3f} % > {PERDIDA_MAX_PCT} %: revise los huecos en la captura.")
     print(f"Generado: {salida}")
 
 

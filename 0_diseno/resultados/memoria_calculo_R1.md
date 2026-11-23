@@ -67,3 +67,45 @@ dADC/dT = 4095 · R_fijo · (dR/dT) / (R_fijo + R)²  y  dR/dT = −β · R / T�
 
 En todo el rango, una cuenta del ADC equivale a unos 0,02–0,03 °C, mucho menos que la
 exactitud pedida en R7 (0,4 °C). La resolución no limita la medición.
+
+
+Sí, la implementación coincide con `0_diseno`. Los valores son los mismos y la fórmula del firmware corresponde exactamente al circuito diseñado.
+
+## Comparación
+
+| Elemento | `0_diseno` | Firmware / `diagram.json` |
+|---|---|---|
+| Circuito | 3V3 → R_fijo → nodo → NTC → GND | `R = R_FIJO·adc/(4095 − adc)`, que es la fórmula para el NTC conectado a GND ✔ |
+| Resistor fijo | 10 kΩ | `R_FIJO = 10000` (el módulo de Wokwi trae 10 kΩ) ✔ |
+| NTC | 10 kΩ a 25 °C, β = 3950 | `R0 = 10000`, `BETA = 3950`, `"beta": "3950"` ✔ |
+| ADC | 12 bits (0–4095) | `analogReadResolution(12)`, `ADC_MAX = 4095` ✔ |
+| Pines | GPIO34, 35, 32 y LED en GPIO2 con 220 Ω | Iguales ✔ |
+| Rango | 0–40 °C | Fuera de 0–40 °C la lectura se marca `NA` y activa la alarma ✔ |
+
+Hay dos detalles que no son errores, pero conviene que los tengas presentes:
+- **El firmware todavía usa la fórmula β nominal, no los coeficientes calibrados de E1.** Eso queda para R19. En Wokwi no afecta, porque allí los sensores son ideales y coinciden con los valores nominales.
+- **Al arrancar, el LED se enciende.** Pasa porque `diagram.json` pone el sensor 2 a 12 °C. Es lo esperado y sirve para ver la alarma de inmediato.
+
+## Cómo probar la electrónica en Wokwi
+
+Compila y arranca la simulación como dice `1_electronica/README.md`. Después haz estas pruebas mirando el monitor serie:
+
+**1. Conversión (verifica el diseño de R1).** Haz clic en el sensor 1, mueve el deslizador a cada temperatura y compara `adc_1` y `T_1` con estos valores. Los calculé con las mismas ecuaciones de `0_diseno`:
+
+| Temperatura del deslizador | `adc_1` esperado | `T_1` esperado |
+|---|---|---|
+| 0 °C | ≈ 3156 | 0,0 |
+| 5 °C | ≈ 2955 | 5,0 |
+| 20 °C | ≈ 2278 | 20,0 |
+| 40 °C | ≈ 1419 | 40,0 |
+
+Se acepta una diferencia de pocas cuentas y de unos ±0,05 °C. Si las cuentas cambian en la dirección contraria (más cuentas con más temperatura), la conexión del divisor está invertida.
+
+**2. Alarma y LED.** Pon los tres sensores en 5 °C: debe salir `alarma = 0` y el LED debe apagarse. Luego mueve solo uno:
+
+| Valor | Resultado esperado |
+|---|---|
+| 8,1 °C | `alarma = 1`, LED encendido |
+| 1,9 °C | `alarma = 1`, LED encendido |
+| 2,0 °C y 8,0 °C | Son los límites: el firmware usa `<` y `>`, así que en el borde no hay alarma, aunque el redondeo a centésimas puede hacer que salte |
+
