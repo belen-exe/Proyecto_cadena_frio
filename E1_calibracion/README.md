@@ -15,7 +15,7 @@ python E1_calibracion/comparar_con_verdad.py   # 3. (opcional) verificación fin
 | Archivo | Qué es |
 |---|---|
 | `simulador_E1.py` | Simula el baño de calibración: 3 sensores + termómetro de referencia en el mismo recipiente, de 0 a 45 °C |
-| `calibracion.py` | Compara 4 estructuras de modelo (R5), ajusta con QR propio (R6) y evalúa el RMSE en los puntos de prueba (R7) |
+| `calibracion.py` | Compara 3 estructuras de modelo (R5), ajusta con QR propio (R6) y evalúa el RMSE en los puntos de prueba (R7) |
 | `comparar_con_verdad.py` | Único script que lee `VERDAD_NO_USAR.json`; solo verifica al final |
 | `datos/calibracion_E1.csv` | Datos crudos: una fila por muestra |
 | `datos/instrumento_referencia.json` | Incertidumbre del termómetro de referencia y su fuente (R4-iii) |

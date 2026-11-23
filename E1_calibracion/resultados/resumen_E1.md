@@ -18,7 +18,6 @@
 - **M1_lineal_adc**: T = θ0 + θ1·u,  u = x/4095 (2 parámetros)
 - **M2_beta**: 1/T_K = θ0 + θ1·L,  L = ln(x/(4095−x)) (2 parámetros)
 - **M3_steinhart_hart**: 1/T_K = θ0 + θ1·L + θ2·L² + θ3·L³ (4 parámetros)
-- **M4_polinomio_L5**: 1/T_K = Σ θk·L^k,  k = 0..5 (6 parámetros)
 
 Criterio de generalización: RMSE de validación cruzada dejando uno fuera (LOO),
 calculado solo con los puntos de calibración y promediado en los 3 canales.
@@ -28,7 +27,6 @@ calculado solo con los puntos de calibración y promediado en los 3 canales.
 | M1_lineal_adc | 2 | 0.4321 | 0.4763 |
 | M2_beta | 2 | 0.0606 | 0.06542 |
 | M3_steinhart_hart | 4 | 0.05842 | 0.06851 |
-| M4_polinomio_L5 | 6 | 0.05706 | 0.07125 |
 
 - El RMSE de **entrenamiento** baja siempre al agregar parámetros (menos sesgo).
 - El RMSE **LOO** deja de mejorar (o empeora) cuando el modelo empieza a ajustar

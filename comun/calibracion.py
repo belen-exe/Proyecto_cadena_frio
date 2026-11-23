@@ -8,7 +8,7 @@ Variables auxiliares, calculadas a partir de la cuenta ADC x (0–4095):
     L = ln( x / (4095 − x) )             (= ln(R_ntc / R_fijo) en el divisor)
 
 L no necesita conocer R_fijo ni R0: esas constantes quedan absorbidas en los
-coeficientes. Por eso las estructuras M2–M4 sirven aunque cada sensor tenga
+coeficientes. Por eso las estructuras M2 y M3 sirven aunque cada sensor tenga
 R0, β y R_fijo distintos del nominal.
 
 Estructuras (complejidad creciente):
@@ -16,9 +16,9 @@ Estructuras (complejidad creciente):
     M1  lineal en ADC          T     = θ0 + θ1·u                       (2 parámetros)
     M2  β (Steinhart-Hart 1)   1/T_K = θ0 + θ1·L                       (2 parámetros, forma física)
     M3  Steinhart-Hart cúbico  1/T_K = θ0 + θ1·L + θ2·L² + θ3·L³       (4 parámetros)
-    M4  polinomio de grado 5   1/T_K = Σ_{k=0..5} θk·L^k               (6 parámetros)
 
-Todas son LINEALES en los parámetros θ, así que se ajustan por mínimos cuadrados.
+Todas son LINEALES en los parámetros θ: el modelo se escribe y = X·θ, con una
+matriz de diseño X distinta para cada estructura, y se ajusta por mínimos cuadrados.
 """
 
 import json
@@ -48,11 +48,6 @@ ESTRUCTURAS = {
         "ecuacion": "1/T_K = θ0 + θ1·L + θ2·L² + θ3·L³",
         "num_parametros": 4,
     },
-    "M4_polinomio_L5": {
-        "espacio": "inv_T",
-        "ecuacion": "1/T_K = Σ θk·L^k,  k = 0..5",
-        "num_parametros": 6,
-    },
 }
 
 
@@ -62,9 +57,14 @@ def variable_L(adc):
 
 
 def matriz_diseno(adc, estructura):
-    """Matriz X (n × p) de la estructura indicada."""
+    """
+    Matriz de diseño X (n × p): una fila por punto, una columna por parámetro.
+
+        M1:  X = [1, u]
+        M2:  X = [1, L]
+        M3:  X = [1, L, L², L³]
+    """
     adc = np.asarray(adc, dtype=float)
-    p = ESTRUCTURAS[estructura]["num_parametros"]
 
     if estructura == "M1_lineal_adc":
         u = adc / ms.ADC_MAX
@@ -72,12 +72,10 @@ def matriz_diseno(adc, estructura):
 
     L = variable_L(adc)
     if estructura == "M2_beta":
-        potencias = [0, 1]
-    elif estructura == "M3_steinhart_hart":
-        potencias = [0, 1, 2, 3]
-    else:
-        potencias = list(range(p))
-    return np.column_stack([L ** k for k in potencias])
+        return np.column_stack([np.ones_like(L), L])
+    if estructura == "M3_steinhart_hart":
+        return np.column_stack([np.ones_like(L), L, L ** 2, L ** 3])
+    raise ValueError(f"Estructura desconocida: {estructura}")
 
 
 def objetivo(temperatura_c, estructura):

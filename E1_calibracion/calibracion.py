@@ -4,7 +4,7 @@ R5, R6, R7 - Calibración ADC -> temperatura con álgebra matricial propia.
 Pasos
 -----
 1. Promedia las N lecturas ADC de cada escalón (reduce el ruido del ADC).
-2. R5: ajusta 4 estructuras de complejidad creciente (comun/calibracion.py) SOLO con
+2. R5: ajusta 3 estructuras de complejidad creciente (comun/calibracion.py) SOLO con
    los puntos de calibración y elige una con un criterio de generalización:
    el RMSE de validación cruzada dejando uno fuera (LOO), promediado en los canales.
    Regla de parsimonia: la estructura más simple cuyo RMSE_LOO no supere en más de
