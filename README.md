@@ -103,7 +103,7 @@ repositorio, en este orden:
 | 1 | `python comun/modelo_sensor.py` | (Opcional) Imprime los parámetros de los 3 sensores simulados y la cuenta ADC en algunas temperaturas | Ninguno |
 | 2 | `python E3_eventos/simulador_E3.py` | Simula las tres sesiones de E3 | `E3_eventos/datos/entrenamiento.csv`, `validacion.csv`, `prueba.csv`, `tabla_eventos.csv`, `VERDAD_NO_USAR.json` |
 | 3 | `python E3_eventos/exploratorio.py` | Estadísticas y gráficas de E3 (ADC y °C provisional, con los eventos sombreados) | `E3_eventos/resultados/exploratorio_entrenamiento.png`, `exploratorio_validacion.png`, `exploratorio_prueba.png`, `exploratorio_histograma.png` |
-| 4 | `python 0_diseno/diseno_circuito.py` | Cálculo del resistor fijo, resolución y esquemático (R1) | `0_diseno/resultados/memoria_calculo_R1.md`, `tabla_resolucion.csv`, `curvas_divisor.png`, `resolucion.png`, `esquematico.png` |
+| 4 | `python 0_diseno/diseno_circuito.py` | Diagrama, cálculo del resistor fijo y tabla de resolución (R1) | `0_diseno/resultados/esquematico.png`, `memoria_calculo_R1.md`, `tabla_resolucion.csv` |
 | 5 | `python 1_electronica/justificacion_ts.py` | Justificación numérica de Ts (R2); usa los datos de E3 | `1_electronica/resultados/justificacion_Ts.md` |
 | 6 | `python 1_electronica/verificar_perdida.py [captura.csv]` | Pérdida de muestras de una captura del firmware (R2); necesita la captura de Wokwi | `1_electronica/resultados/perdida_muestras.md` |
 | 7 | `python E1_calibracion/simulador_E1.py` | Simula el experimento E1 (R4) | `E1_calibracion/datos/calibracion_E1.csv`, `instrumento_referencia.json`, `VERDAD_NO_USAR.json` |

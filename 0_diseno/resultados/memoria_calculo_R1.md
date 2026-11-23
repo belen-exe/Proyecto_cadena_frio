@@ -1,72 +1,69 @@
 # Memoria de cálculo R1 — Circuito de acondicionamiento
 
-> Generado automáticamente por `0_diseno/diseno_circuito.py`. Valores **CALCULADOS**
-> con los parámetros nominales (R0 = 10000 Ω, β = 3950 K, Vcc = 3.3 V, ADC de 12 bits).
+> Generado por `0_diseno/diseno_circuito.py`. Valores calculados con los datos nominales.
 
-## 1. Circuito de cada canal
+## 1. Diagrama del circuito
 
-```
-3V3 ──[ R_fijo ]──┬──[ NTC ]── GND
-                  └──> GPIO (ADC1)
-```
+![Diagrama](esquematico.png)
 
-V(T) = Vcc · R_ntc(T) / (R_fijo + R_ntc(T)),  con  R_ntc(T) = R0 · exp(β · (1/T_K − 1/298,15)).
+Cada canal es un divisor de voltaje: `3V3 ── R_fijo ── nodo ── NTC ── GND`, y el nodo
+va a un pin del ADC del ESP32 (GPIO34, GPIO35, GPIO32). El LED de alarma va en GPIO2
+con un resistor de 220 Ω.
 
-Esquemático completo: `resultados/esquematico.png`.
+## 2. Datos
 
-## 2. Selección del resistor fijo
+| Dato | Valor |
+|---|---|
+| NTC | R0 = 10 kΩ a 25 °C, β = 3950 K |
+| Alimentación | Vcc = 3,3 V |
+| ADC | 12 bits (0–4095 cuentas) |
+| Rango de operación | 0 a 40 °C |
 
-**Criterio:** maximizar la excursión de voltaje en el rango de operación,
-ΔV = V(0 °C) − V(40 °C). Derivando respecto a R_fijo e igualando a cero:
+Ecuaciones:
 
-R_fijo* = √( R_ntc(0 °C) · R_ntc(40 °C) ) = √( 33621 Ω · 5301 Ω ) = **13351 Ω**
+- NTC: R(T) = R0 · e^(β·(1/T − 1/298,15)), con T en kelvin.
+- Divisor: V = Vcc · R(T) / (R_fijo + R(T)).
+- ADC: cuenta = V / Vcc · 4095.
 
-El valor comercial E12 con mayor excursión es **12 kΩ**.
+## 3. Cálculo del resistor fijo
 
-| Candidato | R_fijo [Ω] | V(0 °C) [V] | V(40 °C) [V] | ΔV [V] | ΔV / ΔV* [%] | Cuentas en 0–40 °C | Resolución media [°C/cuenta] |
-|---|---|---|---|---|---|---|---|
-| Óptimo teórico | 13351 | 2.362 | 0.938 | 1.424 | 100.0 | 1767 | 0.0226 |
-| E12 más cercano (12 kohm) | 12000 | 2.432 | 1.011 | 1.421 | 99.8 | 1763 | 0.0227 |
-| Wokwi / adoptado (10 kohm) | 10000 | 2.543 | 1.143 | 1.400 | 98.3 | 1737 | 0.0230 |
+**Criterio:** elegir el R_fijo que dé la mayor variación de voltaje entre 0 y 40 °C,
+ΔV = V(0 °C) − V(40 °C). Más variación significa más cuentas del ADC para el mismo
+rango, es decir, mejor resolución.
 
-**Valor adoptado: 10 kΩ.** El módulo NTC de Wokwi trae el resistor fijo interno de
-10 kΩ y no se puede cambiar. Con 10 kΩ se conserva el
-98.3 % de la excursión óptima, así que
-la pérdida de resolución frente al óptimo es pequeña. En un montaje físico se usaría
-12 kΩ.
+**Paso 1.** Resistencia del NTC en los extremos del rango:
+R(0 °C) = 33621 Ω y R(40 °C) = 5301 Ω.
 
-## 3. Resolución en °C por cuenta del ADC
+**Paso 2.** Al derivar ΔV respecto a R_fijo e igualar a cero se obtiene:
 
-Sensibilidad: dV/dT = Vcc · R_fijo · (dR/dT) / (R_fijo + R)², con dR/dT = −β·R/T_K².
-Cuentas/°C = |dV/dT| · 4095 / Vcc; resolución = 1 / (cuentas/°C).
+R_fijo* = √(R(0 °C) · R(40 °C)) = √(33621 · 5301) = **13351 Ω**
 
-| T [°C] | R_ntc [Ω] | V nodo [V] | ADC [cuentas] | Cuentas/°C | Resolución 10 kΩ [°C/cuenta] | Resolución 12 kΩ [°C/cuenta] |
-|---|---|---|---|---|---|---|
-| 0 | 33621 | 2.543 | 3156 | 38.3 | 0.0261 | 0.0238 |
-| 2 | 30266 | 2.480 | 3078 | 39.9 | 0.0251 | 0.0230 |
-| 5 | 25925 | 2.381 | 2955 | 42.0 | 0.0238 | 0.0221 |
-| 8 | 22279 | 2.278 | 2826 | 43.8 | 0.0229 | 0.0215 |
-| 20 | 12535 | 1.836 | 2278 | 46.5 | 0.0215 | 0.0213 |
-| 30 | 8037 | 1.470 | 1825 | 43.5 | 0.0230 | 0.0237 |
-| 40 | 5301 | 1.143 | 1419 | 37.3 | 0.0268 | 0.0285 |
+**Paso 3.** Comparación de valores comerciales (ΔV óptimo = 1.424 V):
 
-- En la zona crítica 2–8 °C, con 10 kΩ, la resolución va de 0.0229 a
-  0.0251 °C/cuenta.
-- Comprobación por diferencias finitas: diferencia máxima con la fórmula analítica
-  = 2.8e-07 °C/cuenta.
-- La resolución por cuantización es mucho menor que la meta de exactitud de R7
-  (0,4 °C entre 0 y 10 °C): el error dominante será el ruido y la calibración, no los bits.
+| R_fijo | V(0 °C) [V] | V(40 °C) [V] | ΔV [V] | % del óptimo |
+|---|---|---|---|---|
+| 8.2 kΩ | 2.653 | 1.296 | 1.357 | 95.3 % |
+| 10 kΩ | 2.543 | 1.143 | 1.400 | 98.3 % |
+| 12 kΩ | 2.432 | 1.011 | 1.421 | 99.8 % |
+| 15 kΩ | 2.282 | 0.862 | 1.420 | 99.7 % |
+| 18 kΩ | 2.149 | 0.751 | 1.398 | 98.2 % |
 
-## 4. Comprobaciones del diseño (10 kΩ)
+**Decisión: R_fijo = 10 kΩ.** El mejor valor comercial sería 12 kΩ, pero el
+módulo NTC de Wokwi trae 10 kΩ fijo. Con 10 kΩ se obtiene el 98.3 % de la
+variación óptima, una pérdida despreciable.
 
-| Comprobación | Valor | Comentario |
-|---|---|---|
-| Rango de voltaje 0–40 °C | 1.143 – 2.543 V | dentro de la zona lineal aproximada del ADC del ESP32 (0.15–3.1 V) |
-| Rango de cuentas 0–40 °C | 1419 – 3156 | lejos de 0 y 4095; una lectura ≥ 4090 indica desconexión |
-| Corriente máxima del divisor (40 °C) | 0.216 mA | despreciable para el regulador de 3V3 |
-| Potencia máxima en el NTC (R_ntc = R_fijo) | 0.272 mW | P = Vcc² / (4·R_fijo) |
-| Autocalentamiento máximo | 0.18 °C | con constante de disipación 1.5 mW/°C (típica, supuesta); Wokwi no lo simula. La calibración de E1 absorbe la parte constante |
-| Corriente del LED de alarma | 6.8 mA | (3,3 V − 1.8 V) / 220 Ω, menor que 20 mA por pin |
+## 4. Resolución en °C por cuenta del ADC (R_fijo = 10 kΩ)
 
-Se usan solo pines del ADC1 (GPIO34, 35, 32) porque el ADC2 del ESP32 no se puede
-usar cuando el Wi-Fi está activo; así el diseño no depende de esa condición.
+Resolución = 1 / |dADC/dT|, con
+
+dADC/dT = 4095 · R_fijo · (dR/dT) / (R_fijo + R)²  y  dR/dT = −β · R / T²  (T en kelvin).
+
+| T [°C] | R_NTC [Ω] | V nodo [V] | ADC [cuentas] | Resolución [°C/cuenta] |
+|---|---|---|---|---|
+| 0 | 33621 | 2.543 | 3156 | **0.0261** |
+| 5 | 25925 | 2.381 | 2955 | **0.0238** |
+| 20 | 12535 | 1.836 | 2278 | **0.0215** |
+| 40 | 5301 | 1.143 | 1419 | **0.0268** |
+
+En todo el rango, una cuenta del ADC equivale a unos 0,02–0,03 °C, mucho menos que la
+exactitud pedida en R7 (0,4 °C). La resolución no limita la medición.
