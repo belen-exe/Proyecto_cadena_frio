@@ -1,0 +1,8 @@
+{
+  "instrumento": "Termómetro digital de referencia con sonda (SIMULADO)",
+  "resolucion_C": 0.1,
+  "exactitud_C": 0.1,
+  "fuente": "Ficha técnica supuesta de un termómetro digital de laboratorio: exactitud ±0,1 °C en 0–50 °C, resolución 0,1 °C. Valores SUPUESTOS para la simulación.",
+  "incertidumbre_C": 0.1,
+  "Origen": "SIMULADO"
+}

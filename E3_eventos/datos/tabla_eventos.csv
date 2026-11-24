@@ -1,0 +1,7 @@
+tipo,sensor,t_inicio_s,t_fin_s,Origen
+apertura,,600,630,SIMULADO
+desconexion,3,1200,1260,SIMULADO
+apertura,,1800,1830,SIMULADO
+apertura,,2400,2430,SIMULADO
+desconexion,1,3000,3060,SIMULADO
+apertura,,3600,3630,SIMULADO
