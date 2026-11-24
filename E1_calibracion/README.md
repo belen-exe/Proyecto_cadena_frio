@@ -22,7 +22,7 @@ python E1_calibracion/comparar_con_verdad.py   # 3. (opcional) verificación fin
 | `datos/VERDAD_NO_USAR.json` | Temperaturas reales del baño. **El análisis no lo lee** |
 | `resultados/coeficientes_calibracion.json` | **Salida principal:** estructura elegida, coeficientes, covarianza, s y gl por canal. La leen E2 (y luego E3 y el firmware) |
 | `resultados/resumen_E1.md` | Resumen con todas las tablas de R4–R7 |
-| `resultados/tabla_*.csv` | Comparación de modelos, coeficientes con IC, diagnóstico numérico y RMSE |
+| `resultados/tabla_*.csv` | Comparación de modelos, coeficientes con su error estándar, diagnóstico numérico y RMSE |
 | `resultados/*.png` | Sesgo vs varianza, residuos con intervalo de predicción y curvas de calibración |
 
 ## Diseño del experimento
@@ -38,7 +38,7 @@ python E1_calibracion/comparar_con_verdad.py   # 3. (opcional) verificación fin
 
 Al ejecutar `calibracion.py`:
 - **R5:** el RMSE de entrenamiento baja al aumentar los parámetros, mientras que el
-  RMSE de validación cruzada (LOO) tiene un mínimo. El modelo elegido es el más
+  RMSE de validación cruzada tiene un mínimo. El modelo elegido es el más
   simple cerca de ese mínimo.
 - **R6:** `max|∇J|` ≈ 0, `λmin(∇²J)` > 0, cond(X) pequeño, y diferencias normales / QR /
   SVD / lstsq del orden de 1e-15.

@@ -1,4 +1,4 @@
-estructura,num_parametros,canal,RMSE_entrenamiento_C,RMSE_LOO_C,RMSE_prueba_C (informativo),cond_X
+estructura,num_parametros,canal,RMSE_entrenamiento_C,RMSE_validacion_cruzada_C,RMSE_prueba_C (informativo),cond_X
 M1_lineal_adc,2,1,0.43378854262099725,0.4781202665394671,0.3926008483946311,8.66199894057728
 M1_lineal_adc,2,2,0.43882945238472504,0.48371739740943154,0.4083846662445665,8.696883117614304
 M1_lineal_adc,2,3,0.42370244940496576,0.46691288963329025,0.39457652237864665,8.75247167941042

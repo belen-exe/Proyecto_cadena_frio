@@ -6,8 +6,9 @@ Pasos
 1. Promedia las N lecturas ADC de cada escalón (reduce el ruido del ADC).
 2. R5: ajusta 3 estructuras de complejidad creciente (comun/calibracion.py) SOLO con
    los puntos de calibración y elige una con un criterio de generalización:
-   el RMSE de validación cruzada dejando uno fuera (LOO), promediado en los canales.
-   Regla de parsimonia: la estructura más simple cuyo RMSE_LOO no supere en más de
+   el RMSE de validación cruzada (dejando un punto fuera cada vez), promediado en
+   los canales. Regla de parsimonia: la estructura más simple cuyo RMSE de
+   validación cruzada no supere en más de
    un 5 % al mínimo.
 3. R6: con la estructura elegida, por canal: coeficientes ± error estándar,
    intervalo de predicción al 95 %, condiciones de optimalidad (gradiente nulo y
@@ -37,7 +38,7 @@ sys.path.insert(0, str(RAIZ_REPO))
 
 from comun import calibracion as cal  # noqa: E402
 from comun import modelo_sensor as ms  # noqa: E402
-from comun.estadistica import ajustar_mco, intervalo_prediccion, rmse, t_cuantil  # noqa: E402
+from comun.estadistica import ajustar_mco, intervalo_prediccion, rmse  # noqa: E402
 
 CARPETA = Path(__file__).resolve().parent
 CARPETA_DATOS = CARPETA / "datos"
@@ -74,8 +75,12 @@ print(f"Incertidumbre estándar de la referencia: {U_REF} C ({referencia['instru
 # ==========================================
 
 
-def rmse_loo(adc, temperatura, estructura):
-    """RMSE [°C] de validación cruzada dejando uno fuera."""
+def rmse_validacion_cruzada(adc, temperatura, estructura):
+    """
+    RMSE [°C] de validación cruzada: con n puntos se hacen n rondas; en cada una
+    se ajusta el modelo con n − 1 puntos y se predice el punto que quedó fuera.
+    Mide qué tan bien predice el modelo puntos que NO usó para ajustarse.
+    """
     errores = []
     for i in range(len(adc)):
         mascara = np.arange(len(adc)) != i
@@ -99,7 +104,7 @@ for estructura, info in cal.ESTRUCTURAS.items():
             "num_parametros": info["num_parametros"],
             "canal": c,
             "RMSE_entrenamiento_C": rmse(temp - t_hat),
-            "RMSE_LOO_C": rmse_loo(adc, temp, estructura),
+            "RMSE_validacion_cruzada_C": rmse_validacion_cruzada(adc, temp, estructura),
             "RMSE_prueba_C (informativo)": rmse(prueba["T_ref_C"] - t_hat_prueba),
             "cond_X": ajuste["diagnostico"]["numero_condicion_X"],
         })
@@ -108,11 +113,11 @@ tabla_modelos = pd.DataFrame(filas_modelos)
 resumen_modelos = tabla_modelos.groupby("estructura", sort=False).agg(
     num_parametros=("num_parametros", "first"),
     RMSE_entrenamiento_C=("RMSE_entrenamiento_C", "mean"),
-    RMSE_LOO_C=("RMSE_LOO_C", "mean"),
+    RMSE_validacion_cruzada_C=("RMSE_validacion_cruzada_C", "mean"),
 ).reset_index()
 
-loo_min = resumen_modelos["RMSE_LOO_C"].min()
-candidatas = resumen_modelos[resumen_modelos["RMSE_LOO_C"] <= TOLERANCIA_PARSIMONIA * loo_min]
+rmse_vc_min = resumen_modelos["RMSE_validacion_cruzada_C"].min()
+candidatas = resumen_modelos[resumen_modelos["RMSE_validacion_cruzada_C"] <= TOLERANCIA_PARSIMONIA * rmse_vc_min]
 ESTRUCTURA = candidatas.sort_values("num_parametros", kind="stable").iloc[0]["estructura"]
 
 print("\n========== R5: COMPARACIÓN DE ESTRUCTURAS (promedio de canales) ==========")
@@ -154,11 +159,9 @@ for c in CANALES:
         "gl": ajuste["gl"],
     }
 
-    t95 = t_cuantil(0.975, ajuste["gl"])
     for j, (theta, ee) in enumerate(zip(ajuste["theta"], ajuste["error_estandar"])):
         filas_coef.append({
             "canal": c, "parametro": f"θ{j}", "valor": theta, "error_estandar": ee,
-            "IC95_inf": theta - t95 * ee, "IC95_sup": theta + t95 * ee,
             "error_relativo_%": 100 * ee / abs(theta),
         })
 
@@ -232,7 +235,7 @@ tabla_rmse.to_csv(CARPETA_RESULTADOS / "tabla_rmse.csv", index=False)
 fig, ax = plt.subplots(figsize=(9, 5))
 x = np.arange(len(resumen_modelos))
 ax.plot(x, resumen_modelos["RMSE_entrenamiento_C"], "o-", label="RMSE de entrenamiento")
-ax.plot(x, resumen_modelos["RMSE_LOO_C"], "s-", label="RMSE de validación cruzada (LOO)")
+ax.plot(x, resumen_modelos["RMSE_validacion_cruzada_C"], "s-", label="RMSE de validación cruzada")
 ax.set_xticks(x, [f"{e}\n({p} par.)" for e, p in
                   zip(resumen_modelos["estructura"], resumen_modelos["num_parametros"])], fontsize=8)
 ax.set_yscale("log")
@@ -315,15 +318,16 @@ resumen = f"""# Resultados E1 — Calibración (R4–R7)
 
 {chr(10).join(f"- **{e}**: {i['ecuacion']} ({i['num_parametros']} parámetros)" for e, i in cal.ESTRUCTURAS.items())}
 
-Criterio de generalización: RMSE de validación cruzada dejando uno fuera (LOO),
-calculado solo con los puntos de calibración y promediado en los 3 canales.
+Criterio de generalización: RMSE de **validación cruzada**, calculado solo con los
+puntos de calibración y promediado en los 3 canales. Con los 28 puntos se hacen 28
+rondas: en cada una se ajusta con 27 puntos y se predice el que quedó fuera.
 
 {a_markdown(resumen_modelos)}
 
 - El RMSE de **entrenamiento** baja siempre al agregar parámetros (menos sesgo).
-- El RMSE **LOO** deja de mejorar (o empeora) cuando el modelo empieza a ajustar
-  ruido: ahí domina la varianza.
-- Regla: la estructura más simple con RMSE_LOO ≤ {TOLERANCIA_PARSIMONIA} × mínimo.
+- El RMSE de **validación cruzada** deja de mejorar (o empeora) cuando el modelo
+  empieza a ajustar ruido: ahí domina la varianza.
+- Regla: la estructura más simple con RMSE de validación cruzada ≤ {TOLERANCIA_PARSIMONIA} × mínimo.
   **Seleccionada: {ESTRUCTURA}** ({cal.ESTRUCTURAS[ESTRUCTURA]['ecuacion']}).
 
 Detalle por canal: `tabla_modelos.csv`. Gráfica: `sesgo_varianza.png`.
@@ -332,7 +336,7 @@ Detalle por canal: `tabla_modelos.csv`. Gráfica: `sesgo_varianza.png`.
 
 Criterio: mínimos cuadrados en la variable y = {"T" if cal.ESTRUCTURAS[ESTRUCTURA]['espacio'] == 'T' else "1/T_K"}, resuelto con las
 ecuaciones normales: **θ = (XᵀX)⁻¹·Xᵀ·y** (matriz de diseño X por canal).
-Coeficientes ± error estándar (cov = s²·(XᵀX)⁻¹) e IC 95 % con t de Student:
+Coeficientes con su incertidumbre (error estándar = raíz de la diagonal de cov = s²·(XᵀX)⁻¹):
 
 {a_markdown(tabla_coef, "{:.6g}")}
 
