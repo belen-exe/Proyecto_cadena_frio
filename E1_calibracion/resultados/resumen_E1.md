@@ -55,11 +55,11 @@ Condiciones de optimalidad (∇J = −2Xᵀr ≈ 0; ∇²J = 2XᵀX con autovalo
 global único) y confiabilidad numérica (número de condición y diferencia relativa
 entre las ecuaciones normales y la SVD):
 
-| canal | max|∇J| | |Xᵀr| relativo | λmin(∇²J) | λmax(∇²J) | cond(X) | cond(XᵀX) | dif normales-SVD |
+| canal | gradiente máx. (∇J) | gradiente relativo | λ mín. hessiano | λ máx. hessiano | cond(X) | cond(XᵀX) | dif. normales vs SVD |
 |---|---|---|---|---|---|---|---|
-| 1.000e+00 | 6.072e-17 | 1.398e-12 | 2.137e+01 | 6.083e+01 | 1.687e+00 | 2.846e+00 | 2.585e-16 |
-| 2.000e+00 | 7.893e-17 | 1.881e-12 | 2.120e+01 | 6.064e+01 | 1.691e+00 | 2.860e+00 | 2.561e-15 |
-| 3.000e+00 | 2.776e-17 | 6.766e-13 | 2.089e+01 | 6.112e+01 | 1.710e+00 | 2.925e+00 | 1.063e-15 |
+| 1 | 6.07e-17 | 1.4e-12 | 21.4 | 60.8 | 1.69 | 2.85 | 2.58e-16 |
+| 2 | 7.89e-17 | 1.88e-12 | 21.2 | 60.6 | 1.69 | 2.86 | 2.56e-15 |
+| 3 | 2.78e-17 | 6.77e-13 | 20.9 | 61.1 | 1.71 | 2.93 | 1.06e-15 |
 
 Intervalo de predicción al 95 % de una nueva lectura:
 ŷ ± t(0,975; gl)·s·√(1 + x₀ᵀ(XᵀX)⁻¹x₀), transformado a °C. Semiancho medio y cobertura

@@ -163,13 +163,13 @@ for c in CANALES:
     d = ajuste["diagnostico"]
     filas_diag.append({
         "canal": c,
-        "max|∇J|": d["norma_gradiente"],
-        "|Xᵀr| relativo": d["norma_gradiente_relativa"],
-        "λmin(∇²J)": d["autovalor_min_hessiano"],
-        "λmax(∇²J)": d["autovalor_max_hessiano"],
+        "gradiente máx. (∇J)": d["norma_gradiente"],
+        "gradiente relativo": d["norma_gradiente_relativa"],
+        "λ mín. hessiano": d["autovalor_min_hessiano"],
+        "λ máx. hessiano": d["autovalor_max_hessiano"],
         "cond(X)": d["numero_condicion_X"],
         "cond(XᵀX)": d["numero_condicion_XtX"],
-        "dif normales-SVD": d["dif_rel_max_normales_vs_SVD"],
+        "dif. normales vs SVD": d["dif_rel_max_normales_vs_SVD"],
     })
 
     # ---- R7: evaluación en los puntos de prueba ----
@@ -283,7 +283,7 @@ fig.savefig(CARPETA_RESULTADOS / "curvas_calibracion.png", dpi=120)
 def a_markdown(df, formato="{:.4g}"):
     columnas = list(df.columns)
     lineas = ["| " + " | ".join(columnas) + " |", "|" + "---|" * len(columnas)]
-    for _, fila in df.iterrows():
+    for _, fila in df.astype(object).iterrows():
         celdas = [formato.format(v) if isinstance(v, (float, np.floating)) else str(v) for v in fila]
         lineas.append("| " + " | ".join(celdas) + " |")
     return "\n".join(lineas)
@@ -336,7 +336,7 @@ Condiciones de optimalidad (∇J = −2Xᵀr ≈ 0; ∇²J = 2XᵀX con autovalo
 global único) y confiabilidad numérica (número de condición y diferencia relativa
 entre las ecuaciones normales y la SVD):
 
-{a_markdown(tabla_diag, "{:.3e}")}
+{a_markdown(tabla_diag, "{:.3g}")}
 
 Intervalo de predicción al 95 % de una nueva lectura:
 ŷ ± t(0,975; gl)·s·√(1 + x₀ᵀ(XᵀX)⁻¹x₀), transformado a °C. Semiancho medio y cobertura

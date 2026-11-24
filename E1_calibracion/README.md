@@ -40,7 +40,7 @@ Al ejecutar `calibracion.py`:
 - **R5:** el RMSE de entrenamiento baja al aumentar los parámetros, mientras que el
   RMSE de validación cruzada tiene un mínimo. El modelo elegido es el más
   simple cerca de ese mínimo.
-- **R6:** `max|∇J|` ≈ 0, `λmin(∇²J)` > 0, cond(X) pequeño, y diferencia normales / SVD
+- **R6:** "gradiente máx." ≈ 0, "λ mín. hessiano" > 0, cond(X) pequeño, y "dif. normales vs SVD"
   del orden de 1e-15.
 - **R7:** la línea final dice `R7: CUMPLE las metas en todos los canales`
   (RMSE ≤ 0,6 °C en 0–45 °C y ≤ 0,4 °C en 0–10 °C).
