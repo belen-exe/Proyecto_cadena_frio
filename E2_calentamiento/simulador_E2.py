@@ -84,12 +84,10 @@ CONTENEDOR = {
     "espesor_pared_m": 0.025,
     "masa_caja_vacia_kg": 0.15,
     "calor_especifico_caja_J_kgK": 1300.0,
-    "carga": "4 botellas de agua de 250 mL (representan la carga + geles)",
     "masa_carga_kg": 1.0,
     "calor_especifico_carga_J_kgK": 4186.0,
     "conductividad_pared_W_mK (tabla)": 0.035,
     "coef_conveccion_W_m2K (supuesto)": 10.0,
-    "sensores": "3 NTC calibrados (E1) en el aire interior, entre las botellas",
     "Origen": ORIGEN,
 }
 
