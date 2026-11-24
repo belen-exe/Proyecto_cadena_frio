@@ -31,8 +31,8 @@ python E1_calibracion/comparar_con_verdad.py   # 3. (opcional) verificación fin
   cada punto se fija **antes** de medir (columna `tipo`), así que los de prueba nunca
   entran en el ajuste ni en la selección del modelo.
 - Cada punto promedia 10 lecturas ADC tomadas a Ts = 1 s.
-- Referencia: resolución 0,1 °C y exactitud ±0,1 °C (ficha técnica supuesta),
-  con u = 0,065 °C.
+- Referencia: resolución 0,1 °C y exactitud ±0,1 °C (ficha técnica supuesta);
+  su incertidumbre se toma igual a la exactitud, ±0,1 °C.
 
 ## Qué revisar para saber que funciona
 
@@ -40,8 +40,8 @@ Al ejecutar `calibracion.py`:
 - **R5:** el RMSE de entrenamiento baja al aumentar los parámetros, mientras que el
   RMSE de validación cruzada tiene un mínimo. El modelo elegido es el más
   simple cerca de ese mínimo.
-- **R6:** `max|∇J|` ≈ 0, `λmin(∇²J)` > 0, cond(X) pequeño, y diferencias normales / QR /
-  SVD del orden de 1e-15.
+- **R6:** `max|∇J|` ≈ 0, `λmin(∇²J)` > 0, cond(X) pequeño, y diferencia normales / SVD
+  del orden de 1e-15.
 - **R7:** la línea final dice `R7: CUMPLE las metas en todos los canales`
   (RMSE ≤ 0,6 °C en 0–45 °C y ≤ 0,4 °C en 0–10 °C).
 

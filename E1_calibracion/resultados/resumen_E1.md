@@ -10,8 +10,7 @@
 - Cada punto es el promedio de 10 lecturas ADC
   (desviación estándar típica dentro del escalón: 2.16 cuentas).
 - Referencia: Termómetro digital de referencia con sonda (SIMULADO); resolución 0.1 °C,
-  exactitud ±0.1 °C → u = 0.0645 °C (tipo B, distribuciones
-  rectangulares). Fuente: Ficha técnica supuesta de un termómetro digital de laboratorio: exactitud ±0,1 °C en 0–50 °C, resolución 0,1 °C. Valores SUPUESTOS para la simulación.
+  incertidumbre = exactitud de la ficha técnica = ±0.1 °C. Fuente: Ficha técnica supuesta de un termómetro digital de laboratorio: exactitud ±0,1 °C en 0–50 °C, resolución 0,1 °C. Valores SUPUESTOS para la simulación.
 
 ## R5 — Estructuras y selección
 
@@ -54,13 +53,13 @@ Coeficientes con su incertidumbre (error estándar = raíz de la diagonal de cov
 
 Condiciones de optimalidad (∇J = −2Xᵀr ≈ 0; ∇²J = 2XᵀX con autovalores > 0 → mínimo
 global único) y confiabilidad numérica (número de condición y diferencia relativa
-entre ecuaciones normales, QR y SVD):
+entre las ecuaciones normales y la SVD):
 
-| canal | max|∇J| | |Xᵀr| relativo | λmin(∇²J) | λmax(∇²J) | cond(X) | cond(XᵀX) | dif normales-QR | dif normales-SVD |
-|---|---|---|---|---|---|---|---|---|
-| 1.000e+00 | 6.072e-17 | 1.398e-12 | 2.137e+01 | 6.083e+01 | 1.687e+00 | 2.846e+00 | 8.585e-16 | 2.585e-16 |
-| 2.000e+00 | 7.893e-17 | 1.881e-12 | 2.120e+01 | 6.064e+01 | 1.691e+00 | 2.860e+00 | 3.876e-16 | 2.561e-15 |
-| 3.000e+00 | 2.776e-17 | 6.766e-13 | 2.089e+01 | 6.112e+01 | 1.710e+00 | 2.925e+00 | 1.276e-15 | 1.063e-15 |
+| canal | max|∇J| | |Xᵀr| relativo | λmin(∇²J) | λmax(∇²J) | cond(X) | cond(XᵀX) | dif normales-SVD |
+|---|---|---|---|---|---|---|---|
+| 1.000e+00 | 6.072e-17 | 1.398e-12 | 2.137e+01 | 6.083e+01 | 1.687e+00 | 2.846e+00 | 2.585e-16 |
+| 2.000e+00 | 7.893e-17 | 1.881e-12 | 2.120e+01 | 6.064e+01 | 1.691e+00 | 2.860e+00 | 2.561e-15 |
+| 3.000e+00 | 2.776e-17 | 6.766e-13 | 2.089e+01 | 6.112e+01 | 1.710e+00 | 2.925e+00 | 1.063e-15 |
 
 Intervalo de predicción al 95 % de una nueva lectura:
 ŷ ± t(0,975; gl)·s·√(1 + x₀ᵀ(XᵀX)⁻¹x₀), transformado a °C. Semiancho medio y cobertura
@@ -78,7 +77,7 @@ Metas: RMSE ≤ 0.6 °C en 0–45 °C y ≤ 0.4 °C en 0–10 °C.
 **Se cumplen en los 3 canales.**
 
 Análisis del error: RMSE² = sesgo² + varianza. El error de prueba incluye el error
-del propio termómetro de referencia (u = 0.0645 °C), que es un piso: ningún modelo
+del propio termómetro de referencia (±0.1 °C), que es un piso: ningún modelo
 puede tener un RMSE de prueba mucho menor que ese valor. La resolución del ADC
 (≈ 0,024 °C/cuenta, ver R1) y el ruido promediado en 10 muestras
 aportan mucho menos.

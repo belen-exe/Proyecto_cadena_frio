@@ -2,11 +2,10 @@
 Herramientas estadísticas PROPIAS, usadas por E1 (calibración) y E2 (identificación).
 
 - ajustar_mco: mínimos cuadrados ordinarios con álgebra matricial propia
-  (ecuaciones normales θ = (XᵀX)⁻¹·Xᵀ·y),
-  usando solo primitivas de numpy.linalg (qr, solve, inv, svd, eigvalsh, cond).
-  No usa funciones que hagan la regresión completa (lstsq, pinv, polyfit).
-- t_cuantil: cuantil de la distribución t de Student, calculado por integración
-  numérica de su densidad + bisección (así no se necesita scipy).
+  (ecuaciones normales θ = (XᵀX)⁻¹·Xᵀ·y), usando solo primitivas de numpy.linalg
+  (inv, svd, eigvalsh, cond). No usa funciones que hagan la regresión completa
+  (lstsq, pinv, polyfit).
+- t_tabla: valor t de Student para un intervalo al 95 %, tomado de la tabla t.
 """
 
 import math
@@ -14,39 +13,30 @@ import math
 import numpy as np
 
 # ==========================================
-# 1. DISTRIBUCIÓN t DE STUDENT
+# 1. TABLA t DE STUDENT (95 %, dos colas: t con 0,975 de probabilidad acumulada)
 # ==========================================
 
-
-def t_densidad(x, gl):
-    """Densidad de la t de Student con gl grados de libertad."""
-    constante = math.exp(math.lgamma((gl + 1) / 2) - math.lgamma(gl / 2)) / math.sqrt(gl * math.pi)
-    return constante * (1 + np.asarray(x, dtype=float) ** 2 / gl) ** (-(gl + 1) / 2)
-
-
-def t_acumulada(x, gl, puntos=4001):
-    """P(T ≤ x) por regla de Simpson entre 0 y |x| (la densidad es simétrica)."""
-    if x == 0:
-        return 0.5
-    malla = np.linspace(0.0, abs(x), puntos)
-    f = t_densidad(malla, gl)
-    h = malla[1] - malla[0]
-    integral = h / 3 * (f[0] + f[-1] + 4 * f[1:-1:2].sum() + 2 * f[2:-1:2].sum())
-    return 0.5 + math.copysign(integral, x)
+TABLA_T_95 = {
+    1: 12.706, 2: 4.303, 3: 3.182, 4: 2.776, 5: 2.571, 6: 2.447, 7: 2.365, 8: 2.306,
+    9: 2.262, 10: 2.228, 11: 2.201, 12: 2.179, 13: 2.160, 14: 2.145, 15: 2.131,
+    16: 2.120, 17: 2.110, 18: 2.101, 19: 2.093, 20: 2.086, 21: 2.080, 22: 2.074,
+    23: 2.069, 24: 2.064, 25: 2.060, 26: 2.056, 27: 2.052, 28: 2.048, 29: 2.045,
+    30: 2.042, 40: 2.021, 60: 2.000, 120: 1.980,
+}
+T_95_INFINITO = 1.960
 
 
-def t_cuantil(p, gl, tolerancia=1e-8):
-    """Valor x tal que P(T ≤ x) = p, por bisección (0.5 < p < 1)."""
-    if not 0.5 < p < 1:
-        raise ValueError("p debe estar entre 0.5 y 1")
-    bajo, alto = 0.0, 1000.0
-    while alto - bajo > tolerancia:
-        medio = (bajo + alto) / 2
-        if t_acumulada(medio, gl) < p:
-            bajo = medio
-        else:
-            alto = medio
-    return (bajo + alto) / 2
+def t_tabla(gl):
+    """
+    Valor t para un intervalo al 95 % con gl grados de libertad, leído de la tabla.
+    Si gl no está en la tabla se usa la fila inmediatamente menor (más conservadora).
+    """
+    if gl < 1:
+        raise ValueError("Se necesita al menos 1 grado de libertad")
+    if gl > max(TABLA_T_95):
+        return T_95_INFINITO
+    fila = max(g for g in TABLA_T_95 if g <= gl)
+    return TABLA_T_95[fila]
 
 
 # ==========================================
@@ -61,7 +51,7 @@ def ajustar_mco(X, y):
         ∇J = −2·Xᵀ(y − Xθ) = 0   =>   (XᵀX)·θ = Xᵀ·y   =>   θ = (XᵀX)⁻¹·Xᵀ·y
 
     Como comprobación de confiabilidad numérica, el mismo problema se resuelve
-    también por QR (X = Q·R, R·θ = Qᵀ·y) y por SVD, y se comparan los resultados.
+    también por SVD y se comparan los resultados.
 
     Devuelve un diccionario con:
         theta, residuos, s2 (varianza residual), gl (n − p), cov (s²·(XᵀX)⁻¹),
@@ -91,10 +81,8 @@ def ajustar_mco(X, y):
     # 2º orden: ∇²J = 2·XᵀX definida positiva  =>  mínimo global único
     autovalores_hessiano = np.linalg.eigvalsh(2 * XtX)
 
-    # --- Confiabilidad numérica: otros dos caminos deben dar lo mismo ---
-    Q, R = np.linalg.qr(X)                                  # QR:  R·θ = Qᵀ·y
-    theta_qr = np.linalg.solve(R, Q.T @ y)
-    U, S, Vt = np.linalg.svd(X, full_matrices=False)       # SVD
+    # --- Confiabilidad numérica: la SVD (X = U·S·Vᵀ) debe dar el mismo θ ---
+    U, S, Vt = np.linalg.svd(X, full_matrices=False)
     theta_svd = Vt.T @ ((U.T @ y) / S)
 
     escala = np.maximum(np.abs(theta), 1e-300)
@@ -121,34 +109,26 @@ def ajustar_mco(X, y):
             "autovalor_max_hessiano": float(autovalores_hessiano.max()),
             "numero_condicion_X": float(np.linalg.cond(X)),
             "numero_condicion_XtX": float(np.linalg.cond(XtX)),
-            "dif_rel_max_normales_vs_QR": float(np.max(np.abs(theta - theta_qr) / escala)),
             "dif_rel_max_normales_vs_SVD": float(np.max(np.abs(theta - theta_svd) / escala)),
         },
     }
 
 
-def intervalo_prediccion(X0, ajuste, confianza=0.95):
+def intervalo_prediccion(X0, ajuste):
     """
-    Intervalo de predicción de una NUEVA observación en las filas X0:
+    Intervalo de predicción al 95 % de una NUEVA observación en las filas X0:
 
-        ŷ0 ± t(1−α/2, gl) · s · sqrt(1 + x0ᵀ (XᵀX)⁻¹ x0)
+        ŷ0 ± t(gl) · s · sqrt(1 + x0ᵀ (XᵀX)⁻¹ x0)      (t de la tabla t)
 
     Devuelve (y_hat, semiancho).
     """
     X0 = np.atleast_2d(np.asarray(X0, dtype=float))
     y_hat = X0 @ ajuste["theta"]
     apalancamiento = np.einsum("ij,jk,ik->i", X0, ajuste["XtX_inv"], X0)
-    t = t_cuantil(0.5 + confianza / 2, ajuste["gl"])
-    semiancho = t * ajuste["s"] * np.sqrt(1 + apalancamiento)
+    semiancho = t_tabla(ajuste["gl"]) * ajuste["s"] * np.sqrt(1 + apalancamiento)
     return y_hat, semiancho
 
 
 def rmse(error):
     error = np.asarray(error, dtype=float)
     return float(np.sqrt(np.mean(error ** 2)))
-
-
-if __name__ == "__main__":
-    # Autoprueba rápida de los cuantiles t (valores de tabla entre paréntesis).
-    for gl, tabla in [(5, 2.5706), (26, 2.0555), (100, 1.9840)]:
-        print(f"t(0.975, {gl}) = {t_cuantil(0.975, gl):.4f}  (tabla {tabla})")

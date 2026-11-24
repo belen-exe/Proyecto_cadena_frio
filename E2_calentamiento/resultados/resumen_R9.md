@@ -12,37 +12,37 @@ calibrados (E1); T_amb medida cada 60 s e interpolada. T_amb media = 22.63 °C.
 
 ## Resultados
 
-| Método | k [1/min] | u estadística | u sistemática | **IC 95 % de k [1/min]** | τ [min] | Otros |
-|---|---|---|---|---|---|---|
-| 1. PSO propio (k, T0) | 0.004516 | 3.38e-06 | 2.60e-05 | **[0.004464, 0.004569]** | 221.4 | T0 = 4.976 °C, s = 0.0171 °C |
-| 2. Regresión de la ecuación discreta | 0.004531 | 8.04e-05 | 2.59e-05 | **[0.004362, 0.004700]** | 220.7 | b = 0.004520, Δt = 1 min |
+| Método | k [1/min] | τ [min] | Otros |
+|---|---|---|---|
+| 1. PSO propio (k, T0) | 0.004516 | 221.4 | T0 = 4.976 °C, s = 0.0171 °C |
+| 2. Regresión de la ecuación discreta | 0.004531 | 220.7 | b = 0.004520, Δt = 1 min |
 
-- Diferencia relativa: **+0.32 %** (0.18 errores estándar combinados);
-  los intervalos se solapan: ambos métodos son comparables.
+**Intervalo al 95 % de la rapidez de calentamiento k: [0.004368, 0.004693] min⁻¹**
+(τ entre 213 y 229 min).
+
+- Diferencia relativa entre métodos: **+0.32 %**. El k del PSO
+  está dentro del intervalo: ambos métodos son comparables.
 - El PSO se corrió con 5 semillas: dispersión relativa de k =
   1.8e-05 % (converge siempre al mismo mínimo,
   ver `convergencia_pso.png`).
 
 ## Cálculo del intervalo al 95 % de k
 
-- **PSO:** linealización alrededor del óptimo. J = ∂T_modelo/∂θ por diferencias centrales;
-  cov(θ) = s²·(JᵀJ)⁻¹ con s² = SSE/(n − 2). Como los residuos de puntos vecinos están
-  correlacionados (ρ1 = -0.04), la covarianza se multiplica por (1+ρ1)/(1−ρ1) y se usa
-  n_efectivo = n·(1−ρ1)/(1+ρ1) = 360 para los grados de libertad.
-  IC = k ± t(0,975; n_ef − 2)·σ_k.
-- **Parte sistemática (ambos métodos):** se repite la identificación con T_amb + u_ref
-  (u_ref = 0.0645 °C, termómetro de referencia, E1) y con T + u_cal (u_cal = 0.0615 °C,
-  RMSE de prueba de la calibración, E1); u_sis = √(Δk_ref² + Δk_cal²).
-- **Combinación:** u_k = √(u_estadística² + u_sis²); IC 95 % = k ± 2·u_k (factor de cobertura 2).
-  Con solo la parte estadística el IC del PSO sería [0.004510, 0.004523],
-  demasiado optimista: el error de los instrumentos domina.
-- **Regresión:** σ_b de mínimos cuadrados (con la misma corrección por autocorrelación,
-  ρ1 = -0.36) y propagación a k = −ln(1−b)/Δt: σ_k = σ_b/((1−b)·Δt).
+1. La regresión ΔT = b·(T_amb − T) se resuelve con θ = (XᵀX)⁻¹·Xᵀ·y (igual que en E1);
+   el error estándar de b sale de cov = s²·(XᵀX)⁻¹: σ_b = 8.01e-05.
+2. **Autocorrelación:** si cada residuo se parece al anterior (ρ1 = -0.36), los
+   datos traen menos información independiente. Se usa n_efectivo = n·(1−ρ1)/(1+ρ1)
+   = 59 (de n = 59) y σ_b se multiplica por √((1+ρ1)/(1−ρ1)).
+   Si ρ1 ≤ 0 no se corrige.
+3. Paso de b a k = −ln(1−b)/Δt con la derivada: σ_k = σ_b/((1−b)·Δt) = 8.04e-05 min⁻¹.
+4. IC 95 % = k ± t·σ_k, con t de la tabla t para n_efectivo − 1 grados de libertad.
 
-## Por qué pueden diferir
+Limitación: el intervalo solo considera el ruido de las mediciones; no incluye el
+error fijo de los instrumentos (termómetro de referencia y calibración de E1).
 
-El PSO ajusta la trayectoria completa (error de salida) y estima también T0; la
-regresión solo relaciona cada minuto con el siguiente (error de ecuación) y es más
-sensible al ruido de los incrementos, por eso su intervalo es más ancho.
+## Por qué pueden diferir los métodos
+
+El PSO ajusta la trayectoria completa y estima también T0; la regresión solo relaciona
+cada minuto con el siguiente y es más sensible al ruido de los incrementos.
 
 Gráficas: `datos_E2.png`, `datos_vs_modelo.png`, `residuos.png`, `convergencia_pso.png`.

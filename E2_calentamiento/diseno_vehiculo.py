@@ -57,7 +57,7 @@ param = json.loads((CARPETA_RESULTADOS / "parametros_identificados.json").read_t
 desc = json.loads((CARPETA / "datos" / "descripcion_contenedor.json").read_text(encoding="utf-8"))
 
 k_proto = param["pso"]["k_1_por_min"]            # 1/min
-k_proto_sup = param["pso"]["IC95_k"][1]          # extremo superior IC 95 %
+k_proto_sup = param["intervalo_k"]["IC95"][1]    # extremo superior del intervalo al 95 % (R9)
 
 dims = desc["dimensiones_interiores_m"]
 L_proto = desc["espesor_pared_m"]

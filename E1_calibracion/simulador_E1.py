@@ -26,7 +26,6 @@ Uso:  python E1_calibracion/simulador_E1.py
 """
 
 import json
-import math
 import sys
 from pathlib import Path
 
@@ -75,11 +74,8 @@ REFERENCIA = {
         "±0,1 °C en 0–50 °C, resolución 0,1 °C. Valores SUPUESTOS para la simulación."
     ),
 }
-# Incertidumbre estándar combinada (tipo B): exactitud con distribución
-# rectangular (a/√3) y resolución con distribución rectangular (q/√12).
-U_EXACTITUD = REFERENCIA["exactitud_C"] / math.sqrt(3)
-U_RESOLUCION = REFERENCIA["resolucion_C"] / math.sqrt(12)
-U_REFERENCIA = math.sqrt(U_EXACTITUD ** 2 + U_RESOLUCION ** 2)
+# Incertidumbre del termómetro de referencia: la exactitud de su ficha técnica.
+U_REFERENCIA = REFERENCIA["exactitud_C"]
 
 # Error real del termómetro en la simulación: normal con σ = exactitud/2.
 SIGMA_ERROR_REFERENCIA = REFERENCIA["exactitud_C"] / 2
@@ -142,10 +138,7 @@ def main():
 
     referencia = dict(REFERENCIA)
     referencia.update({
-        "u_exactitud_C": round(U_EXACTITUD, 4),
-        "u_resolucion_C": round(U_RESOLUCION, 4),
-        "u_estandar_combinada_C": round(U_REFERENCIA, 4),
-        "U_expandida_k2_C": round(2 * U_REFERENCIA, 4),
+        "incertidumbre_C": U_REFERENCIA,
         "Origen": ORIGEN,
     })
     (CARPETA_DATOS / "instrumento_referencia.json").write_text(
@@ -172,7 +165,7 @@ def main():
           f"{n_cal} puntos de calibración y {n_pru} de prueba)")
     print(f"Puntos en 0-10 C: calibración {sum(t <= 10 for t in ESCALONES_CALIBRACION)}, "
           f"prueba {sum(t <= 10 for t in ESCALONES_PRUEBA)}")
-    print(f"Incertidumbre estándar de la referencia: {U_REFERENCIA:.3f} C")
+    print(f"Incertidumbre de la referencia: ±{U_REFERENCIA} C (exactitud de la ficha técnica)")
     print("Generado: E1_calibracion/datos/instrumento_referencia.json, VERDAD_NO_USAR.json")
 
 

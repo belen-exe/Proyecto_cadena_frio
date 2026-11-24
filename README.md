@@ -44,7 +44,7 @@ Proyecto_cadena_frio/
 
 | Carpeta | Requisitos | Estado |
 |---|---|---|
-| `comun/` | Soporte de R4–R11 (modelo del sensor, estructuras de calibración, mínimos cuadrados, t de Student) | Hecho |
+| `comun/` | Soporte de R4–R11 (modelo del sensor, estructuras de calibración, mínimos cuadrados, tabla t) | Hecho |
 | `0_diseno/` | R1 | Hecho |
 | `1_electronica/` | R2, R3 | Parcial (faltan la captura de 10 min y la captura de pantalla de Wokwi) |
 | `1_electronica/` | R19, R20, R21 | PENDIENTE (necesitan la calibración de E1 y el detector) |
@@ -109,12 +109,12 @@ repositorio, en este orden:
 | 7 | `python E1_calibracion/simulador_E1.py` | Simula el experimento E1 (R4) | `E1_calibracion/datos/calibracion_E1.csv`, `instrumento_referencia.json`, `VERDAD_NO_USAR.json` |
 | 8 | `python E1_calibracion/calibracion.py` | Selección de modelo, ajuste y RMSE (R5–R7) | `E1_calibracion/resultados/coeficientes_calibracion.json`, `resumen_E1.md`, tablas CSV y gráficas |
 | 9 | `python E2_calentamiento/simulador_E2.py` | Simula el experimento E2 (R8) | `E2_calentamiento/datos/calentamiento_E2.csv`, `ambiente_E2.csv`, `eventos_E2.csv`, `descripcion_contenedor.json`, `VERDAD_NO_USAR.json` |
-| 10 | `python E2_calentamiento/identificacion.py` | PSO + regresión + IC 95 % de k (R9). **Necesita el paso 8** | `E2_calentamiento/resultados/parametros_identificados.json`, `resumen_R9.md`, gráficas |
+| 10 | `python E2_calentamiento/identificacion.py` | PSO + regresión + intervalo al 95 % de k (R9). **Necesita el paso 8** | `E2_calentamiento/resultados/parametros_identificados.json`, `resumen_R9.md`, gráficas |
 | 11 | `python E2_calentamiento/diseno_vehiculo.py` | Cálculos de R10. **Necesita el paso 10** | `E2_calentamiento/resultados/resumen_R10.md`, `diseno_R10.png` |
 | 12 | `python E1_calibracion/comparar_con_verdad.py` y `python E2_calentamiento/comparar_con_verdad.py` | (Opcional) Verificación final contra la verdad de la simulación | Solo imprime |
 
-Autopruebas rápidas de las piezas propias: `python comun/estadistica.py` (cuantiles t
-contra la tabla) y `python E2_calentamiento/pso.py` (PSO en la función de Rosenbrock).
+Autoprueba rápida del PSO propio: `python E2_calentamiento/pso.py` (busca el mínimo
+de la función de Rosenbrock, que está en (1, 1)).
 
 Los simuladores usan semillas fijas: al volver a ejecutarlos se obtienen
 exactamente los mismos archivos. Los scripts que abren gráficas esperan a que se

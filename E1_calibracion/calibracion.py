@@ -13,7 +13,7 @@ Pasos
 3. R6: con la estructura elegida, por canal: coeficientes ± error estándar,
    intervalo de predicción al 95 %, condiciones de optimalidad (gradiente nulo y
    hessiano definido positivo) y confiabilidad numérica (número de condición y
-   comparación ecuaciones normales / QR / SVD).
+   comparación ecuaciones normales / SVD).
 4. R7: RMSE sobre los puntos de PRUEBA (que no se usaron en nada de lo anterior),
    en 0–45 °C y en 0–10 °C, con análisis del error.
 
@@ -54,7 +54,7 @@ TOLERANCIA_PARSIMONIA = 1.05
 
 crudos = pd.read_csv(CARPETA_DATOS / "calibracion_E1.csv")
 referencia = json.loads((CARPETA_DATOS / "instrumento_referencia.json").read_text(encoding="utf-8"))
-U_REF = referencia["u_estandar_combinada_C"]
+U_REF = referencia["incertidumbre_C"]
 
 puntos = crudos.groupby("punto").agg(
     tipo=("tipo", "first"),
@@ -67,7 +67,7 @@ calib = puntos[puntos["tipo"] == "calibracion"].reset_index(drop=True)
 prueba = puntos[puntos["tipo"] == "prueba"].reset_index(drop=True)
 
 print(f"Puntos de calibración: {len(calib)}  |  puntos de prueba: {len(prueba)}")
-print(f"Incertidumbre estándar de la referencia: {U_REF} C ({referencia['instrumento']})")
+print(f"Incertidumbre de la referencia: ±{U_REF} C ({referencia['instrumento']})")
 
 # ==========================================
 # 2. R5 - COMPARACIÓN DE ESTRUCTURAS (solo datos de calibración)
@@ -169,7 +169,6 @@ for c in CANALES:
         "λmax(∇²J)": d["autovalor_max_hessiano"],
         "cond(X)": d["numero_condicion_X"],
         "cond(XᵀX)": d["numero_condicion_XtX"],
-        "dif normales-QR": d["dif_rel_max_normales_vs_QR"],
         "dif normales-SVD": d["dif_rel_max_normales_vs_SVD"],
     })
 
@@ -305,8 +304,7 @@ resumen = f"""# Resultados E1 — Calibración (R4–R7)
 - Cada punto es el promedio de {int(crudos.groupby('punto').size().iloc[0])} lecturas ADC
   (desviación estándar típica dentro del escalón: {ruido_adc_medio:.2f} cuentas).
 - Referencia: {referencia['instrumento']}; resolución {referencia['resolucion_C']} °C,
-  exactitud ±{referencia['exactitud_C']} °C → u = {U_REF} °C (tipo B, distribuciones
-  rectangulares). Fuente: {referencia['fuente']}
+  incertidumbre = exactitud de la ficha técnica = ±{U_REF} °C. Fuente: {referencia['fuente']}
 
 ## R5 — Estructuras y selección
 
@@ -336,7 +334,7 @@ Coeficientes con su incertidumbre (error estándar = raíz de la diagonal de cov
 
 Condiciones de optimalidad (∇J = −2Xᵀr ≈ 0; ∇²J = 2XᵀX con autovalores > 0 → mínimo
 global único) y confiabilidad numérica (número de condición y diferencia relativa
-entre ecuaciones normales, QR y SVD):
+entre las ecuaciones normales y la SVD):
 
 {a_markdown(tabla_diag, "{:.3e}")}
 
@@ -352,7 +350,7 @@ Metas: RMSE ≤ {META_RMSE_TOTAL} °C en 0–45 °C y ≤ {META_RMSE_0_10} °C e
 **{"Se cumplen en los 3 canales." if cumple_todo else "NO se cumplen en todos los canales: ver análisis del error."}**
 
 Análisis del error: RMSE² = sesgo² + varianza. El error de prueba incluye el error
-del propio termómetro de referencia (u = {U_REF} °C), que es un piso: ningún modelo
+del propio termómetro de referencia (±{U_REF} °C), que es un piso: ningún modelo
 puede tener un RMSE de prueba mucho menor que ese valor. La resolución del ADC
 (≈ 0,024 °C/cuenta, ver R1) y el ruido promediado en {int(crudos.groupby('punto').size().iloc[0])} muestras
 aportan mucho menos.

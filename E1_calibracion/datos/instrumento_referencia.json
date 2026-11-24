@@ -3,9 +3,6 @@
   "resolucion_C": 0.1,
   "exactitud_C": 0.1,
   "fuente": "Ficha técnica supuesta de un termómetro digital de laboratorio: exactitud ±0,1 °C en 0–50 °C, resolución 0,1 °C. Valores SUPUESTOS para la simulación.",
-  "u_exactitud_C": 0.0577,
-  "u_resolucion_C": 0.0289,
-  "u_estandar_combinada_C": 0.0645,
-  "U_expandida_k2_C": 0.1291,
+  "incertidumbre_C": 0.1,
   "Origen": "SIMULADO"
 }

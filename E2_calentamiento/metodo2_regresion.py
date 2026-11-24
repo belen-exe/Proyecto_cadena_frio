@@ -24,7 +24,7 @@ solo relaciona cada paso con el siguiente (error de ecuación).
 
 import numpy as np
 
-from comun.estadistica import ajustar_mco, t_cuantil
+from comun.estadistica import ajustar_mco, t_tabla
 
 
 def autocorrelacion_lag1(residuos):
@@ -32,10 +32,10 @@ def autocorrelacion_lag1(residuos):
     return float(np.sum(r[1:] * r[:-1]) / np.sum(r * r))
 
 
-def estimar_k_regresion(t_min, temperatura, t_amb, confianza=0.95):
+def estimar_k_regresion(t_min, temperatura, t_amb):
     """
     t_min, temperatura, t_amb: series uniformes (promedios de 1 min).
-    Devuelve k [1/min], su IC y los diagnósticos del ajuste.
+    Devuelve k [1/min], su intervalo al 95 % y los diagnósticos del ajuste.
     """
     t_min = np.asarray(t_min, dtype=float)
     temperatura = np.asarray(temperatura, dtype=float)
@@ -50,16 +50,18 @@ def estimar_k_regresion(t_min, temperatura, t_amb, confianza=0.95):
     b = float(ajuste["theta"][0])
     se_b = float(ajuste["error_estandar"][0])
 
-    # Corrección por autocorrelación de los residuos (tamaño de muestra efectivo)
+    # Corrección por autocorrelación de los residuos: si cada residuo se parece al
+    # anterior (ρ1 > 0), los datos traen menos información independiente de la que
+    # parece, así que se usa un tamaño de muestra efectivo menor y se agranda σ.
     rho = autocorrelacion_lag1(ajuste["residuos"])
     rho_usado = max(rho, 0.0)
     inflacion = np.sqrt((1 + rho_usado) / (1 - rho_usado))
     n_efectivo = ajuste["n"] * (1 - rho_usado) / (1 + rho_usado)
-    gl = max(n_efectivo - 1, 1)
+    gl = max(int(n_efectivo) - 1, 1)
 
     k = -np.log(1 - b) / dt
     se_k = se_b * inflacion / ((1 - b) * dt)
-    t = t_cuantil(0.5 + confianza / 2, gl)
+    t = t_tabla(gl)                      # valor de la tabla t (95 %)
 
     return {
         "k_1_por_min": k,
