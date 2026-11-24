@@ -111,10 +111,7 @@ repositorio, en este orden:
 | 9 | `python E2_calentamiento/simulador_E2.py` | Simula el experimento E2 (R8) | `E2_calentamiento/datos/calentamiento_E2.csv`, `ambiente_E2.csv`, `eventos_E2.csv`, `descripcion_contenedor.json`, `VERDAD_NO_USAR.json` |
 | 10 | `python E2_calentamiento/identificacion.py` | PSO + regresión + intervalo al 95 % de k (R9). **Necesita el paso 8** | `E2_calentamiento/resultados/parametros_identificados.json`, `resumen_R9.md`, gráficas |
 | 11 | `python E2_calentamiento/diseno_vehiculo.py` | Cálculos de R10. **Necesita el paso 10** | `E2_calentamiento/resultados/resumen_R10.md`, `diseno_R10.png` |
-| 12 | `python E1_calibracion/comparar_con_verdad.py` y `python E2_calentamiento/comparar_con_verdad.py` | (Opcional) Verificación final contra la verdad de la simulación | Solo imprime |
-
-Autoprueba rápida del PSO propio: `python E2_calentamiento/pso.py` (busca el mínimo
-de la función de Rosenbrock, que está en (1, 1)).
+| 12 | `python E1_calibracion/comparar_con_verdad.py` | (Opcional) Verificación final de E1 contra la verdad de la simulación | Solo imprime |
 
 Los simuladores usan semillas fijas: al volver a ejecutarlos se obtienen
 exactamente los mismos archivos. Los scripts que abren gráficas esperan a que se
@@ -300,8 +297,8 @@ no existiría: el sistema solo ve cuentas del ADC y la tabla de eventos anotada
 durante el experimento. Si un ajuste, un umbral o una elección de componentes usara
 la verdad, los resultados quedarían inflados y no serían defendibles. El archivo
 solo sirve para que el equipo verifique, al final, que el simulador hizo lo que se
-esperaba. Los únicos scripts que lo leen son los `comparar_con_verdad.py`, y no
-alimentan ningún resultado.
+esperaba. El único script que lo lee es `E1_calibracion/comparar_con_verdad.py`, y no
+alimenta ningún resultado.
 
 ## 8. Limitaciones de la simulación
 
