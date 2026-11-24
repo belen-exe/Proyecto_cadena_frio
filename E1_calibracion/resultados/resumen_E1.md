@@ -36,9 +36,10 @@ calculado solo con los puntos de calibración y promediado en los 3 canales.
 
 Detalle por canal: `tabla_modelos.csv`. Gráfica: `sesgo_varianza.png`.
 
-## R6 — Ajuste por canal (QR propio)
+## R6 — Ajuste por canal (ecuaciones normales, implementación propia)
 
-Criterio: mínimos cuadrados en la variable y = 1/T_K.
+Criterio: mínimos cuadrados en la variable y = 1/T_K, resuelto con las
+ecuaciones normales: **θ = (XᵀX)⁻¹·Xᵀ·y** (matriz de diseño X por canal).
 Coeficientes ± error estándar (cov = s²·(XᵀX)⁻¹) e IC 95 % con t de Student:
 
 | canal | parametro | valor | error_estandar | IC95_inf | IC95_sup | error_relativo_% |
@@ -52,14 +53,14 @@ Coeficientes ± error estándar (cov = s²·(XᵀX)⁻¹) e IC 95 % con t de Stu
 
 Condiciones de optimalidad (∇J = −2Xᵀr ≈ 0; ∇²J = 2XᵀX con autovalores > 0 → mínimo
 global único) y confiabilidad numérica (número de condición y diferencia relativa
-entre QR, ecuaciones normales, SVD y `numpy.linalg.lstsq`, esta última **solo como
+entre ecuaciones normales, QR, SVD y `numpy.linalg.lstsq`, esta última **solo como
 contraste con una función de librería**):
 
-| canal | max|∇J| | |Xᵀr| relativo | λmin(∇²J) | λmax(∇²J) | cond(X) | cond(XᵀX) | dif QR-normales | dif QR-SVD | dif QR-lstsq (contraste) |
+| canal | max|∇J| | |Xᵀr| relativo | λmin(∇²J) | λmax(∇²J) | cond(X) | cond(XᵀX) | dif normales-QR | dif normales-SVD | dif normales-lstsq (contraste) |
 |---|---|---|---|---|---|---|---|---|---|
-| 1.000e+00 | 9.541e-18 | 2.197e-13 | 2.137e+01 | 6.083e+01 | 1.687e+00 | 2.846e+00 | 4.292e-16 | 8.585e-16 | 6.439e-16 |
-| 2.000e+00 | 8.856e-18 | 2.111e-13 | 2.120e+01 | 6.064e+01 | 1.691e+00 | 2.860e+00 | 4.268e-16 | 2.347e-15 | 8.536e-16 |
-| 3.000e+00 | 5.206e-18 | 1.269e-13 | 2.089e+01 | 6.112e+01 | 1.710e+00 | 2.925e+00 | 1.063e-15 | 2.127e-16 | 1.489e-15 |
+| 1.000e+00 | 6.072e-17 | 1.398e-12 | 2.137e+01 | 6.083e+01 | 1.687e+00 | 2.846e+00 | 8.585e-16 | 2.585e-16 | 1.502e-15 |
+| 2.000e+00 | 7.893e-17 | 1.881e-12 | 2.120e+01 | 6.064e+01 | 1.691e+00 | 2.860e+00 | 3.876e-16 | 2.561e-15 | 1.067e-15 |
+| 3.000e+00 | 2.776e-17 | 6.766e-13 | 2.089e+01 | 6.112e+01 | 1.710e+00 | 2.925e+00 | 1.276e-15 | 1.063e-15 | 2.765e-15 |
 
 Intervalo de predicción al 95 % de una nueva lectura:
 ŷ ± t(0,975; gl)·s·√(1 + x₀ᵀ(XᵀX)⁻¹x₀), transformado a °C. Semiancho medio y cobertura

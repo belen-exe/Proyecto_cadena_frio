@@ -15,7 +15,7 @@ python E1_calibracion/comparar_con_verdad.py   # 3. (opcional) verificación fin
 | Archivo | Qué es |
 |---|---|
 | `simulador_E1.py` | Simula el baño de calibración: 3 sensores + termómetro de referencia en el mismo recipiente, de 0 a 45 °C |
-| `calibracion.py` | Compara 3 estructuras de modelo (R5), ajusta con QR propio (R6) y evalúa el RMSE en los puntos de prueba (R7) |
+| `calibracion.py` | Compara 3 estructuras de modelo (R5), ajusta con ecuaciones normales θ = (XᵀX)⁻¹·Xᵀ·y (R6) y evalúa el RMSE en los puntos de prueba (R7) |
 | `comparar_con_verdad.py` | Único script que lee `VERDAD_NO_USAR.json`; solo verifica al final |
 | `datos/calibracion_E1.csv` | Datos crudos: una fila por muestra |
 | `datos/instrumento_referencia.json` | Incertidumbre del termómetro de referencia y su fuente (R4-iii) |
@@ -40,7 +40,7 @@ Al ejecutar `calibracion.py`:
 - **R5:** el RMSE de entrenamiento baja al aumentar los parámetros, mientras que el
   RMSE de validación cruzada (LOO) tiene un mínimo. El modelo elegido es el más
   simple cerca de ese mínimo.
-- **R6:** `max|∇J|` ≈ 0, `λmin(∇²J)` > 0, cond(X) pequeño, y diferencias QR / normales /
+- **R6:** `max|∇J|` ≈ 0, `λmin(∇²J)` > 0, cond(X) pequeño, y diferencias normales / QR /
   SVD / lstsq del orden de 1e-15.
 - **R7:** la línea final dice `R7: CUMPLE las metas en todos los canales`
   (RMSE ≤ 0,6 °C en 0–45 °C y ≤ 0,4 °C en 0–10 °C).

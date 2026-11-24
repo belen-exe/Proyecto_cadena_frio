@@ -12,7 +12,7 @@ Pasos
 3. R6: con la estructura elegida, por canal: coeficientes ± error estándar,
    intervalo de predicción al 95 %, condiciones de optimalidad (gradiente nulo y
    hessiano definido positivo) y confiabilidad numérica (número de condición y
-   comparación QR / ecuaciones normales / SVD). Contraste declarado con
+   comparación ecuaciones normales / QR / SVD). Contraste declarado con
    numpy.linalg.lstsq (función de librería, SOLO como contraste).
 4. R7: RMSE sobre los puntos de PRUEBA (que no se usaron en nada de lo anterior),
    en 0–45 °C y en 0–10 °C, con análisis del error.
@@ -171,9 +171,9 @@ for c in CANALES:
         "λmax(∇²J)": d["autovalor_max_hessiano"],
         "cond(X)": d["numero_condicion_X"],
         "cond(XᵀX)": d["numero_condicion_XtX"],
-        "dif QR-normales": d["dif_rel_max_QR_vs_normales"],
-        "dif QR-SVD": d["dif_rel_max_QR_vs_SVD"],
-        "dif QR-lstsq (contraste)": dif_lstsq,
+        "dif normales-QR": d["dif_rel_max_normales_vs_QR"],
+        "dif normales-SVD": d["dif_rel_max_normales_vs_SVD"],
+        "dif normales-lstsq (contraste)": dif_lstsq,
     })
 
     # ---- R7: evaluación en los puntos de prueba ----
@@ -328,16 +328,17 @@ calculado solo con los puntos de calibración y promediado en los 3 canales.
 
 Detalle por canal: `tabla_modelos.csv`. Gráfica: `sesgo_varianza.png`.
 
-## R6 — Ajuste por canal (QR propio)
+## R6 — Ajuste por canal (ecuaciones normales, implementación propia)
 
-Criterio: mínimos cuadrados en la variable y = {"T" if cal.ESTRUCTURAS[ESTRUCTURA]['espacio'] == 'T' else "1/T_K"}.
+Criterio: mínimos cuadrados en la variable y = {"T" if cal.ESTRUCTURAS[ESTRUCTURA]['espacio'] == 'T' else "1/T_K"}, resuelto con las
+ecuaciones normales: **θ = (XᵀX)⁻¹·Xᵀ·y** (matriz de diseño X por canal).
 Coeficientes ± error estándar (cov = s²·(XᵀX)⁻¹) e IC 95 % con t de Student:
 
 {a_markdown(tabla_coef, "{:.6g}")}
 
 Condiciones de optimalidad (∇J = −2Xᵀr ≈ 0; ∇²J = 2XᵀX con autovalores > 0 → mínimo
 global único) y confiabilidad numérica (número de condición y diferencia relativa
-entre QR, ecuaciones normales, SVD y `numpy.linalg.lstsq`, esta última **solo como
+entre ecuaciones normales, QR, SVD y `numpy.linalg.lstsq`, esta última **solo como
 contraste con una función de librería**):
 
 {a_markdown(tabla_diag, "{:.3e}")}

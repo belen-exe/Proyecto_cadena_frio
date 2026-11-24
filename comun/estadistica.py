@@ -1,7 +1,8 @@
 """
 Herramientas estadísticas PROPIAS, usadas por E1 (calibración) y E2 (identificación).
 
-- ajustar_mco: mínimos cuadrados ordinarios con álgebra matricial propia (QR),
+- ajustar_mco: mínimos cuadrados ordinarios con álgebra matricial propia
+  (ecuaciones normales θ = (XᵀX)⁻¹·Xᵀ·y),
   usando solo primitivas de numpy.linalg (qr, solve, inv, svd, eigvalsh, cond).
   No usa funciones que hagan la regresión completa (lstsq, pinv, polyfit).
 - t_cuantil: cuantil de la distribución t de Student, calculado por integración
@@ -55,9 +56,12 @@ def t_cuantil(p, gl, tolerancia=1e-8):
 
 def ajustar_mco(X, y):
     """
-    Resuelve  min_θ ||y − Xθ||²  mediante la factorización QR:
+    Resuelve  min_θ ||y − Xθ||²  con las ECUACIONES NORMALES:
 
-        X = Q R   =>   R θ = Qᵀ y
+        ∇J = −2·Xᵀ(y − Xθ) = 0   =>   (XᵀX)·θ = Xᵀ·y   =>   θ = (XᵀX)⁻¹·Xᵀ·y
+
+    Como comprobación de confiabilidad numérica, el mismo problema se resuelve
+    también por QR (X = Q·R, R·θ = Qᵀ·y) y por SVD, y se comparan los resultados.
 
     Devuelve un diccionario con:
         theta, residuos, s2 (varianza residual), gl (n − p), cov (s²·(XᵀX)⁻¹),
@@ -69,18 +73,17 @@ def ajustar_mco(X, y):
     if n <= p:
         raise ValueError("Se necesitan más observaciones que parámetros")
 
-    # --- Solución principal: QR ---
-    Q, R = np.linalg.qr(X)
-    theta = np.linalg.solve(R, Q.T @ y)
+    # --- Solución principal: ecuaciones normales  θ = (XᵀX)⁻¹·Xᵀ·y ---
+    XtX = X.T @ X                  # matriz p × p
+    Xty = X.T @ y                  # vector de p elementos
+    XtX_inv = np.linalg.inv(XtX)   # (XᵀX)⁻¹
+    theta = XtX_inv @ Xty          # θ = (XᵀX)⁻¹·Xᵀ·y
 
-    residuos = y - X @ theta
+    residuos = y - X @ theta       # r = y − X·θ
     sse = float(residuos @ residuos)
     gl = n - p
-    s2 = sse / gl
-
-    XtX = X.T @ X
-    XtX_inv = np.linalg.inv(XtX)
-    cov = s2 * XtX_inv
+    s2 = sse / gl                  # varianza del error
+    cov = s2 * XtX_inv             # cov(θ) = s²·(XᵀX)⁻¹
 
     # --- Condiciones de optimalidad del criterio J(θ) = ||y − Xθ||² ---
     # 1er orden: ∇J = −2·Xᵀ r = 0   (ecuaciones normales)
@@ -89,7 +92,8 @@ def ajustar_mco(X, y):
     autovalores_hessiano = np.linalg.eigvalsh(2 * XtX)
 
     # --- Confiabilidad numérica: otros dos caminos deben dar lo mismo ---
-    theta_normales = np.linalg.solve(XtX, X.T @ y)          # ecuaciones normales
+    Q, R = np.linalg.qr(X)                                  # QR:  R·θ = Qᵀ·y
+    theta_qr = np.linalg.solve(R, Q.T @ y)
     U, S, Vt = np.linalg.svd(X, full_matrices=False)       # SVD
     theta_svd = Vt.T @ ((U.T @ y) / S)
 
@@ -117,8 +121,8 @@ def ajustar_mco(X, y):
             "autovalor_max_hessiano": float(autovalores_hessiano.max()),
             "numero_condicion_X": float(np.linalg.cond(X)),
             "numero_condicion_XtX": float(np.linalg.cond(XtX)),
-            "dif_rel_max_QR_vs_normales": float(np.max(np.abs(theta - theta_normales) / escala)),
-            "dif_rel_max_QR_vs_SVD": float(np.max(np.abs(theta - theta_svd) / escala)),
+            "dif_rel_max_normales_vs_QR": float(np.max(np.abs(theta - theta_qr) / escala)),
+            "dif_rel_max_normales_vs_SVD": float(np.max(np.abs(theta - theta_svd) / escala)),
         },
     }
 
