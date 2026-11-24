@@ -61,22 +61,40 @@ entre las ecuaciones normales y la SVD):
 | 2 | 7.89e-17 | 1.88e-12 | 21.2 | 60.6 | 1.69 | 2.86 | 2.56e-15 |
 | 3 | 2.78e-17 | 6.77e-13 | 20.9 | 61.1 | 1.71 | 2.93 | 1.06e-15 |
 
-Intervalo de predicción al 95 % de una nueva lectura:
-ŷ ± t(0,975; gl)·s·√(1 + x₀ᵀ(XᵀX)⁻¹x₀), transformado a °C. Semiancho medio y cobertura
-en los puntos de prueba en la tabla de R7; banda completa en `residuos_calibracion.png`.
+**Intervalo de predicción al 95 %** de una nueva lectura:
+ŷ ± t·s·√(1 + x₀ᵀ(XᵀX)⁻¹x₀) (t de la tabla t), transformado a °C. Evaluado en los
+puntos de prueba; si está bien calculado, cerca del 95 % de ellos deben caer dentro.
+Banda completa en `residuos_calibracion.png`.
+
+| canal | semiancho medio [°C] | puntos dentro | cobertura [%] |
+|---|---|---|---|
+| 1 | 0.142 | 9 de 10 | 90 |
+| 2 | 0.137 | 9 de 10 | 90 |
+| 3 | 0.133 | 10 de 10 | 100 |
 
 ## R7 — Exactitud en los puntos de prueba
 
-| canal | RMSE_0_45C | RMSE_0_10C | n_prueba | n_prueba_0_10C | sesgo_medio_C | desv_est_C | error_max_abs_C | semiancho_IP95_medio_C | cobertura_IP95_% | cumple_0_45 | cumple_0_10 |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | 0.05705 | 0.0833 | 10 | 4 | 0.02756 | 0.04995 | 0.1281 | 0.1416 | 90 | True | True |
-| 2 | 0.06512 | 0.099 | 10 | 4 | 0.03624 | 0.0541 | 0.128 | 0.137 | 90 | True | True |
-| 3 | 0.06245 | 0.09008 | 10 | 4 | 0.03564 | 0.05128 | 0.1071 | 0.1334 | 100 | True | True |
+Error de cada punto = T_ref − T_estimada.
 
-Metas: RMSE ≤ 0.6 °C en 0–45 °C y ≤ 0.4 °C en 0–10 °C.
-**Se cumplen en los 3 canales.**
+**Todo el rango (0–45 °C)**, meta RMSE ≤ 0.6 °C:
 
-Análisis del error: RMSE² = sesgo² + varianza. El error de prueba incluye el error
+| canal | n puntos | RMSE [°C] | sesgo [°C] | desv. est. [°C] | error máx. [°C] | meta [°C] | cumple |
+|---|---|---|---|---|---|---|---|
+| 1 | 10 | 0.057 | 0.028 | 0.050 | 0.128 | 0.600 | sí |
+| 2 | 10 | 0.065 | 0.036 | 0.054 | 0.128 | 0.600 | sí |
+| 3 | 10 | 0.062 | 0.036 | 0.051 | 0.107 | 0.600 | sí |
+
+**Zona crítica (0–10 °C)**, meta RMSE ≤ 0.4 °C:
+
+| canal | n puntos | RMSE [°C] | sesgo [°C] | desv. est. [°C] | error máx. [°C] | meta [°C] | cumple |
+|---|---|---|---|---|---|---|---|
+| 1 | 4 | 0.083 | 0.078 | 0.030 | 0.128 | 0.400 | sí |
+| 2 | 4 | 0.099 | 0.096 | 0.023 | 0.128 | 0.400 | sí |
+| 3 | 4 | 0.090 | 0.088 | 0.018 | 0.107 | 0.400 | sí |
+
+**Se cumplen las dos metas en los 3 canales.**
+
+Análisis del error: RMSE² = sesgo² + desv. est.². El error de prueba incluye el error
 del propio termómetro de referencia (±0.1 °C), que es un piso: ningún modelo
 puede tener un RMSE de prueba mucho menor que ese valor. La resolución del ADC
 (≈ 0,024 °C/cuenta, ver R1) y el ruido promediado en 10 muestras

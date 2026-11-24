@@ -134,8 +134,23 @@ coeficientes = {
     "Origen": "SIMULADO",
     "canales": {},
 }
-filas_coef, filas_diag, filas_rmse = [], [], []
+filas_coef, filas_diag, filas_0_45, filas_0_10, filas_ip = [], [], [], [], []
 ajustes = {}
+
+
+def metricas_error(canal, error, meta):
+    """Fila de la tabla de R7 para un canal y un rango de temperatura."""
+    return {
+        "canal": canal,
+        "n puntos": len(error),
+        "RMSE [°C]": rmse(error),
+        "sesgo [°C]": float(np.mean(error)),
+        "desv. est. [°C]": float(np.std(error)),
+        "error máx. [°C]": float(np.max(np.abs(error))),
+        "meta [°C]": meta,
+        "cumple": "sí" if rmse(error) <= meta else "NO",
+    }
+
 
 for c in CANALES:
     adc = calib[f"adc_{c}"].to_numpy()
@@ -184,32 +199,32 @@ for c in CANALES:
     dentro_ip = (t_ref_p >= np.minimum(lim_a, lim_b)) & (t_ref_p <= np.maximum(lim_a, lim_b))
 
     zona = t_ref_p <= 10
-    filas_rmse.append({
+    filas_0_45.append(metricas_error(c, error, META_RMSE_TOTAL))
+    filas_0_10.append(metricas_error(c, error[zona], META_RMSE_0_10))
+    filas_ip.append({
         "canal": c,
-        "RMSE_0_45C": rmse(error),
-        "RMSE_0_10C": rmse(error[zona]),
-        "n_prueba": len(error),
-        "n_prueba_0_10C": int(zona.sum()),
-        "sesgo_medio_C": float(np.mean(error)),
-        "desv_est_C": float(np.std(error)),
-        "error_max_abs_C": float(np.max(np.abs(error))),
-        "semiancho_IP95_medio_C": float(np.mean(np.abs(lim_b - lim_a) / 2)),
-        "cobertura_IP95_%": 100 * float(dentro_ip.mean()),
-        "cumple_0_45": rmse(error) <= META_RMSE_TOTAL,
-        "cumple_0_10": rmse(error[zona]) <= META_RMSE_0_10,
+        "semiancho medio [°C]": float(np.mean(np.abs(lim_b - lim_a) / 2)),
+        "puntos dentro": f"{int(dentro_ip.sum())} de {len(dentro_ip)}",
+        "cobertura [%]": int(round(100 * float(dentro_ip.mean()))),
     })
 
 tabla_coef = pd.DataFrame(filas_coef)
 tabla_diag = pd.DataFrame(filas_diag)
-tabla_rmse = pd.DataFrame(filas_rmse)
+tabla_0_45 = pd.DataFrame(filas_0_45)
+tabla_0_10 = pd.DataFrame(filas_0_10)
+tabla_ip = pd.DataFrame(filas_ip)
 
 print("\n========== R6: COEFICIENTES ==========")
 print(tabla_coef[["canal", "parametro", "valor", "error_estandar", "error_relativo_%"]]
       .to_string(index=False, float_format=lambda v: f"{v:.6g}"))
 print("\n========== R6: OPTIMALIDAD Y CONFIABILIDAD NUMÉRICA ==========")
 print(tabla_diag.to_string(index=False, float_format=lambda v: f"{v:.3e}"))
-print("\n========== R7: RMSE EN PUNTOS DE PRUEBA ==========")
-print(tabla_rmse.round(4).to_string(index=False))
+print("\n========== R6: INTERVALO DE PREDICCIÓN 95 % (puntos de prueba) ==========")
+print(tabla_ip.round(4).to_string(index=False))
+print("\n========== R7: PUNTOS DE PRUEBA, TODO EL RANGO 0-45 °C ==========")
+print(tabla_0_45.round(4).to_string(index=False))
+print("\n========== R7: PUNTOS DE PRUEBA, ZONA CRÍTICA 0-10 °C ==========")
+print(tabla_0_10.round(4).to_string(index=False))
 
 # ==========================================
 # 4. GUARDAR RESULTADOS
@@ -222,7 +237,9 @@ CARPETA_RESULTADOS.mkdir(parents=True, exist_ok=True)
 tabla_modelos.to_csv(CARPETA_RESULTADOS / "tabla_modelos.csv", index=False)
 tabla_coef.to_csv(CARPETA_RESULTADOS / "tabla_coeficientes.csv", index=False)
 tabla_diag.to_csv(CARPETA_RESULTADOS / "tabla_diagnostico_numerico.csv", index=False)
-tabla_rmse.to_csv(CARPETA_RESULTADOS / "tabla_rmse.csv", index=False)
+tabla_0_45.to_csv(CARPETA_RESULTADOS / "tabla_rmse_0_45C.csv", index=False)
+tabla_0_10.to_csv(CARPETA_RESULTADOS / "tabla_rmse_0_10C.csv", index=False)
+tabla_ip.to_csv(CARPETA_RESULTADOS / "tabla_intervalo_prediccion.csv", index=False)
 
 # ---- Gráfica 1: sesgo y varianza ----
 fig, ax = plt.subplots(figsize=(9, 5))
@@ -290,7 +307,7 @@ def a_markdown(df, formato="{:.4g}"):
 
 
 ruido_adc_medio = float(np.mean([puntos[f"sd_adc_{c}"].mean() for c in CANALES]))
-cumple_todo = bool(tabla_rmse["cumple_0_45"].all() and tabla_rmse["cumple_0_10"].all())
+cumple_todo = bool((tabla_0_45["cumple"] == "sí").all() and (tabla_0_10["cumple"] == "sí").all())
 
 resumen = f"""# Resultados E1 — Calibración (R4–R7)
 
@@ -338,18 +355,28 @@ entre las ecuaciones normales y la SVD):
 
 {a_markdown(tabla_diag, "{:.3g}")}
 
-Intervalo de predicción al 95 % de una nueva lectura:
-ŷ ± t(0,975; gl)·s·√(1 + x₀ᵀ(XᵀX)⁻¹x₀), transformado a °C. Semiancho medio y cobertura
-en los puntos de prueba en la tabla de R7; banda completa en `residuos_calibracion.png`.
+**Intervalo de predicción al 95 %** de una nueva lectura:
+ŷ ± t·s·√(1 + x₀ᵀ(XᵀX)⁻¹x₀) (t de la tabla t), transformado a °C. Evaluado en los
+puntos de prueba; si está bien calculado, cerca del 95 % de ellos deben caer dentro.
+Banda completa en `residuos_calibracion.png`.
+
+{a_markdown(tabla_ip, "{:.3f}")}
 
 ## R7 — Exactitud en los puntos de prueba
 
-{a_markdown(tabla_rmse)}
+Error de cada punto = T_ref − T_estimada.
 
-Metas: RMSE ≤ {META_RMSE_TOTAL} °C en 0–45 °C y ≤ {META_RMSE_0_10} °C en 0–10 °C.
-**{"Se cumplen en los 3 canales." if cumple_todo else "NO se cumplen en todos los canales: ver análisis del error."}**
+**Todo el rango (0–45 °C)**, meta RMSE ≤ {META_RMSE_TOTAL} °C:
 
-Análisis del error: RMSE² = sesgo² + varianza. El error de prueba incluye el error
+{a_markdown(tabla_0_45, "{:.3f}")}
+
+**Zona crítica (0–10 °C)**, meta RMSE ≤ {META_RMSE_0_10} °C:
+
+{a_markdown(tabla_0_10, "{:.3f}")}
+
+**{"Se cumplen las dos metas en los 3 canales." if cumple_todo else "NO se cumplen en todos los canales: ver análisis del error."}**
+
+Análisis del error: RMSE² = sesgo² + desv. est.². El error de prueba incluye el error
 del propio termómetro de referencia (±{U_REF} °C), que es un piso: ningún modelo
 puede tener un RMSE de prueba mucho menor que ese valor. La resolución del ADC
 (≈ 0,024 °C/cuenta, ver R1) y el ruido promediado en {int(crudos.groupby('punto').size().iloc[0])} muestras
@@ -359,5 +386,6 @@ aportan mucho menos.
 
 print(f"\nR7: {'CUMPLE' if cumple_todo else 'NO CUMPLE'} las metas en todos los canales")
 print(f"Generado en {CARPETA_RESULTADOS.relative_to(RAIZ_REPO)}: coeficientes_calibracion.json, "
-      "tabla_modelos.csv, tabla_coeficientes.csv, tabla_diagnostico_numerico.csv, tabla_rmse.csv, "
+      "tabla_modelos.csv, tabla_coeficientes.csv, tabla_diagnostico_numerico.csv, "
+      "tabla_rmse_0_45C.csv, tabla_rmse_0_10C.csv, tabla_intervalo_prediccion.csv, "
       "resumen_E1.md, sesgo_varianza.png, residuos_calibracion.png, curvas_calibracion.png")
