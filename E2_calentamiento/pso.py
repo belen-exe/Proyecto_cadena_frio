@@ -86,12 +86,3 @@ def pso(
         "mejor_costo": costo_global,
         "historia": np.array(historia),
     }
-
-
-if __name__ == "__main__":
-    # Autoprueba: función de Rosenbrock (mínimo en (1, 1) con costo 0).
-    def rosenbrock(X):
-        return (1 - X[:, 0]) ** 2 + 100 * (X[:, 1] - X[:, 0] ** 2) ** 2
-
-    r = pso(rosenbrock, [-2, -2], [2, 2], num_iteraciones=300, semilla=0)
-    print(f"Rosenbrock: x* = {r['mejor_posicion']}, costo = {r['mejor_costo']:.2e}")
