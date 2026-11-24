@@ -13,8 +13,7 @@ Pasos
 3. R6: con la estructura elegida, por canal: coeficientes ± error estándar,
    intervalo de predicción al 95 %, condiciones de optimalidad (gradiente nulo y
    hessiano definido positivo) y confiabilidad numérica (número de condición y
-   comparación ecuaciones normales / QR / SVD). Contraste declarado con
-   numpy.linalg.lstsq (función de librería, SOLO como contraste).
+   comparación ecuaciones normales / QR / SVD).
 4. R7: RMSE sobre los puntos de PRUEBA (que no se usaron en nada de lo anterior),
    en 0–45 °C y en 0–10 °C, con análisis del error.
 
@@ -146,10 +145,6 @@ for c in CANALES:
     ajuste = ajustar_mco(X, y)
     ajustes[c] = ajuste
 
-    # Contraste con una función de librería (numpy.linalg.lstsq): SOLO CONTRASTE
-    theta_lstsq = np.linalg.lstsq(X, y, rcond=None)[0]
-    dif_lstsq = float(np.max(np.abs(ajuste["theta"] - theta_lstsq) / np.abs(theta_lstsq)))
-
     coeficientes["canales"][str(c)] = {
         "theta": ajuste["theta"].tolist(),
         "error_estandar": ajuste["error_estandar"].tolist(),
@@ -176,7 +171,6 @@ for c in CANALES:
         "cond(XᵀX)": d["numero_condicion_XtX"],
         "dif normales-QR": d["dif_rel_max_normales_vs_QR"],
         "dif normales-SVD": d["dif_rel_max_normales_vs_SVD"],
-        "dif normales-lstsq (contraste)": dif_lstsq,
     })
 
     # ---- R7: evaluación en los puntos de prueba ----
@@ -342,8 +336,7 @@ Coeficientes con su incertidumbre (error estándar = raíz de la diagonal de cov
 
 Condiciones de optimalidad (∇J = −2Xᵀr ≈ 0; ∇²J = 2XᵀX con autovalores > 0 → mínimo
 global único) y confiabilidad numérica (número de condición y diferencia relativa
-entre ecuaciones normales, QR, SVD y `numpy.linalg.lstsq`, esta última **solo como
-contraste con una función de librería**):
+entre ecuaciones normales, QR y SVD):
 
 {a_markdown(tabla_diag, "{:.3e}")}
 

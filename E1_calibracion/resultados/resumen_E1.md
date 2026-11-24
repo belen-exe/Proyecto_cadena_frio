@@ -54,14 +54,13 @@ Coeficientes con su incertidumbre (error estándar = raíz de la diagonal de cov
 
 Condiciones de optimalidad (∇J = −2Xᵀr ≈ 0; ∇²J = 2XᵀX con autovalores > 0 → mínimo
 global único) y confiabilidad numérica (número de condición y diferencia relativa
-entre ecuaciones normales, QR, SVD y `numpy.linalg.lstsq`, esta última **solo como
-contraste con una función de librería**):
+entre ecuaciones normales, QR y SVD):
 
-| canal | max|∇J| | |Xᵀr| relativo | λmin(∇²J) | λmax(∇²J) | cond(X) | cond(XᵀX) | dif normales-QR | dif normales-SVD | dif normales-lstsq (contraste) |
-|---|---|---|---|---|---|---|---|---|---|
-| 1.000e+00 | 6.072e-17 | 1.398e-12 | 2.137e+01 | 6.083e+01 | 1.687e+00 | 2.846e+00 | 8.585e-16 | 2.585e-16 | 1.502e-15 |
-| 2.000e+00 | 7.893e-17 | 1.881e-12 | 2.120e+01 | 6.064e+01 | 1.691e+00 | 2.860e+00 | 3.876e-16 | 2.561e-15 | 1.067e-15 |
-| 3.000e+00 | 2.776e-17 | 6.766e-13 | 2.089e+01 | 6.112e+01 | 1.710e+00 | 2.925e+00 | 1.276e-15 | 1.063e-15 | 2.765e-15 |
+| canal | max|∇J| | |Xᵀr| relativo | λmin(∇²J) | λmax(∇²J) | cond(X) | cond(XᵀX) | dif normales-QR | dif normales-SVD |
+|---|---|---|---|---|---|---|---|---|
+| 1.000e+00 | 6.072e-17 | 1.398e-12 | 2.137e+01 | 6.083e+01 | 1.687e+00 | 2.846e+00 | 8.585e-16 | 2.585e-16 |
+| 2.000e+00 | 7.893e-17 | 1.881e-12 | 2.120e+01 | 6.064e+01 | 1.691e+00 | 2.860e+00 | 3.876e-16 | 2.561e-15 |
+| 3.000e+00 | 2.776e-17 | 6.766e-13 | 2.089e+01 | 6.112e+01 | 1.710e+00 | 2.925e+00 | 1.276e-15 | 1.063e-15 |
 
 Intervalo de predicción al 95 % de una nueva lectura:
 ŷ ± t(0,975; gl)·s·√(1 + x₀ᵀ(XᵀX)⁻¹x₀), transformado a °C. Semiancho medio y cobertura

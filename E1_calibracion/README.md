@@ -41,7 +41,7 @@ Al ejecutar `calibracion.py`:
   RMSE de validación cruzada tiene un mínimo. El modelo elegido es el más
   simple cerca de ese mínimo.
 - **R6:** `max|∇J|` ≈ 0, `λmin(∇²J)` > 0, cond(X) pequeño, y diferencias normales / QR /
-  SVD / lstsq del orden de 1e-15.
+  SVD del orden de 1e-15.
 - **R7:** la línea final dice `R7: CUMPLE las metas en todos los canales`
   (RMSE ≤ 0,6 °C en 0–45 °C y ≤ 0,4 °C en 0–10 °C).
 
