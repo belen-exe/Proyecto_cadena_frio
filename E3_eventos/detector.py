@@ -211,6 +211,11 @@ def main():
     parametros = {
         "descripcion": "Detector PCA de E3 (R12). Todo fijado SOLO con entrenamiento.csv. Datos SIMULADOS.",
         "Origen": "SIMULADO",
+        # Evidencia de R12: único archivo de datos leído y muestras usadas.
+        "archivos_leidos": ["E3_eventos/datos/entrenamiento.csv"],
+        "n_muestras_usadas": int(n),
+        "intervalo_t_s_usado": [float(entrenamiento["t_s"][validas].min()),
+                                float(entrenamiento["t_s"][validas].max())],
         "ventana_suavizado_s": VENTANA_S,
         "criterio_k": f"varianza acumulada >= {VARIANZA_OBJETIVO}",
         "percentil_umbral": PERCENTIL_UMBRAL,
@@ -249,9 +254,8 @@ def main():
           f"(≈ {100 * error_rec / 3:.1f} %, coherente con 1 − información conservada).")
 
     RUTA_PARAMETROS.write_text(json.dumps(parametros, indent=2, ensure_ascii=False), encoding="utf-8")
-    tabla_autovalores.to_csv(CARPETA_RESULTADOS / "tabla_autovalores.csv", index=False)
     print(f"\nGuardado: {RUTA_PARAMETROS.relative_to(RAIZ_REPO)}")
-    print("Guardado: E3_eventos/resultados/tabla_autovalores.csv, codo_pca.png")
+    print("Guardado: E3_eventos/resultados/codo_pca.png")
 
 
 def grafica_codo(autovalores, acumulada, k):

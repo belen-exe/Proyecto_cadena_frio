@@ -15,7 +15,7 @@ comun/modelo_sensor.py: es una CONVERSIÓN PROVISIONAL, SIN CALIBRAR.
 
 Genera en E3_eventos/resultados/:
   exploratorio_entrenamiento.png, exploratorio_validacion.png,
-  exploratorio_prueba.png, exploratorio_histograma.png
+  exploratorio_prueba.png
 
 Uso:  python exploratorio.py   (desde cualquier carpeta)
 """
@@ -184,28 +184,6 @@ for nombre, (df, canales_adc) in datos.items():
     ruta = CARPETA_RESULTADOS / f"exploratorio_{nombre}.png"
     fig.savefig(ruta, dpi=120)
     print(f"Gráfica guardada: {ruta.relative_to(RAIZ_REPO)}")
-
-# Gráfica 2: distribución de temperaturas en operación normal (entrenamiento)
-df, canales_adc = datos["entrenamiento"]
-fig, ax = plt.subplots(figsize=(9, 5))
-
-for c in canales_adc:
-    ax.hist(
-        ms.adc_a_temperatura_beta(df[c]),
-        bins=35,
-        alpha=0.45,
-        label=f"Sensor {c.replace('adc_', '')}",
-    )
-
-ax.set_title(f"Distribución de temperaturas - entrenamiento - SIMULADO\n({ETIQUETA_CONVERSION})")
-ax.set_xlabel("Temperatura (°C)")
-ax.set_ylabel("Frecuencia")
-ax.legend()
-ax.grid(True)
-fig.tight_layout()
-ruta = CARPETA_RESULTADOS / "exploratorio_histograma.png"
-fig.savefig(ruta, dpi=120)
-print(f"Gráfica guardada: {ruta.relative_to(RAIZ_REPO)}")
 
 if MOSTRAR_GRAFICAS and plt.get_backend().lower() != "agg":
     plt.show()

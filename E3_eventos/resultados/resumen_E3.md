@@ -6,6 +6,41 @@ Todos los datos son **SIMULADOS**. Los parámetros del detector se fijaron solo 
 
 ## R12 — Detector
 
+### Formulación matemática
+
+Cada muestra n da un vector de 3 temperaturas calibradas (E1) y suavizadas con un
+promedio móvil de V = 10 muestras:
+
+    x[n] = (1/V) · Σ_(j=0..V−1) T[n−j]          (vector de 3 elementos, °C)
+
+**Entrenamiento** (N = 1791 muestras de `entrenamiento.csv`):
+
+    μ = (1/N) Σ x[n]                    media de cada sensor
+    s = desviación estándar de cada sensor
+    z[n] = (x[n] − μ) / s               (elemento a elemento)
+    R = ZᵀZ / (N − 1)                   matriz 3 × 3 (Z: las N filas z[n])
+    R·pᵢ = λᵢ·pᵢ                        autovalores λ₁ ≥ λ₂ ≥ λ₃ y autovectores pᵢ
+    P = [p₁ … p_k]                      las k componentes retenidas (3 × k)
+
+**Estadísticos de una muestra nueva** (z con μ y s de entrenamiento):
+
+    t = Pᵀ·z                            coordenadas de z en las componentes retenidas
+    T² = Σ_(i=1..k) tᵢ² / λᵢ            distancia DENTRO del patrón normal
+    Q  = ‖z − P·Pᵀ·z‖²                  lo que el patrón normal NO explica
+
+**Regla de decisión**:
+
+    anómala[n] = (T²[n] > umbral_T²) o (Q[n] > umbral_Q) o (algún ADC ≥ 4090)
+    alarma[n]  = anómala[n] y anómala[n−1] y … y anómala[n−K+1]      (K = 3)
+
+**Criterio para k**: el menor k con Σ_(i≤k) λᵢ / Σλᵢ ≥ 0,90.
+
+**Criterio para los umbrales**: percentil 99.5 de T² y de Q en entrenamiento
+(se acepta que el 0.5 % de las muestras normales lo supere; la
+persistencia K filtra los picos aislados).
+
+### Parámetros
+
 | Parámetro | Valor | Cómo se fijó |
 |---|---|---|
 | Suavizado | promedio móvil causal de 10 s | a priori: baja el ruido ≈ 3 veces y es 3 veces más corto que una apertura |
@@ -22,6 +57,22 @@ Autovalores de la matriz de correlación (gráfica de codo en `codo_pca.png`):
 | 1 | 2.9643 | 98.81 |
 | 2 | 0.0193 | 0.64 |
 | 3 | 0.0163 | 0.54 |
+
+### Demostración de que solo se usó entrenamiento
+
+1. `detector.py` lee un único archivo de datos: `E3_eventos/datos/entrenamiento.csv`
+   (queda registrado en `parametros_detector.json`, campo `archivos_leidos`), con
+   N = 1791 muestras, t = 9–1799 s.
+2. `evaluacion.py` no calcula ningún parámetro: solo carga el JSON y lo aplica.
+3. Comprobación numérica: se recalculan μ, s y los umbrales con cada sesión por separado.
+   Solo entrenamiento reproduce los valores del JSON (diferencia ≈ 0, error de redondeo);
+   con validación o prueba saldrían valores distintos.
+
+| sesión | dif. máx. μ [°C] | dif. máx. s [°C] | dif. umbral T² | dif. umbral Q |
+|---|---|---|---|---|
+| entrenamiento | 0.0e+00 | 0.0e+00 | 0.0e+00 | 0.0e+00 |
+| validacion | 1.5e-02 | 1.2e-02 | 3.3e-01 | 2.8e-03 |
+| prueba | 5.6e-02 | 2.0e-02 | 9.3e-01 | 4.7e-01 |
 
 ## R13 — Desempeño
 

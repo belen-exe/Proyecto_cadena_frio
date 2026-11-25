@@ -102,7 +102,7 @@ repositorio, en este orden:
 |---|---|---|---|
 | 1 | `python comun/modelo_sensor.py` | (Opcional) Imprime los parámetros de los 3 sensores simulados y la cuenta ADC en algunas temperaturas | Ninguno |
 | 2 | `python E3_eventos/simulador_E3.py` | Simula las tres sesiones de E3 | `E3_eventos/datos/entrenamiento.csv`, `validacion.csv`, `prueba.csv`, `tabla_eventos.csv`, `VERDAD_NO_USAR.json` |
-| 3 | `python E3_eventos/exploratorio.py` | Estadísticas y gráficas de E3 (ADC y °C provisional, con los eventos sombreados) | `E3_eventos/resultados/exploratorio_entrenamiento.png`, `exploratorio_validacion.png`, `exploratorio_prueba.png`, `exploratorio_histograma.png` |
+| 3 | `python E3_eventos/exploratorio.py` | Estadísticas y gráficas de E3 (ADC y °C provisional, con los eventos sombreados) | `E3_eventos/resultados/exploratorio_entrenamiento.png`, `exploratorio_validacion.png`, `exploratorio_prueba.png` |
 | 4 | `python 0_diseno/diseno_circuito.py` | Diagrama, cálculo del resistor fijo y tabla de resolución (R1) | `0_diseno/resultados/esquematico.png`, `memoria_calculo_R1.md`, `tabla_resolucion.csv` |
 | 5 | `python 1_electronica/justificacion_ts.py` | Justificación numérica de Ts (R2); usa los datos de E3 | `1_electronica/resultados/justificacion_Ts.md` |
 | 6 | `python 1_electronica/verificar_perdida.py [captura.csv]` | Pérdida de muestras de una captura del firmware (R2); necesita la captura de Wokwi | `1_electronica/resultados/perdida_muestras.md` |
@@ -111,8 +111,8 @@ repositorio, en este orden:
 | 9 | `python E2_calentamiento/simulador_E2.py` | Simula el experimento E2 (R8) | `E2_calentamiento/datos/calentamiento_E2.csv`, `ambiente_E2.csv`, `eventos_E2.csv`, `descripcion_contenedor.json`, `VERDAD_NO_USAR.json` |
 | 10 | `python E2_calentamiento/identificacion.py` | PSO + regresión + intervalo al 95 % de k (R9). **Necesita el paso 8** | `E2_calentamiento/resultados/parametros_identificados.json`, `resumen_R9.md`, gráficas |
 | 11 | `python E2_calentamiento/diseno_vehiculo.py` | Cálculos de R10. **Necesita el paso 10** | `E2_calentamiento/resultados/resumen_R10.md`, `diseno_R10.png` |
-| 12 | `python E3_eventos/detector.py` | PCA y umbrales del detector, fijados SOLO con `entrenamiento.csv` (R12) y números de compresión (R14). **Necesita los pasos 2 y 8** | `E3_eventos/resultados/parametros_detector.json`, `tabla_autovalores.csv`, `codo_pca.png` |
-| 13 | `python E3_eventos/evaluacion.py` | Aplica el detector sin reajustar: falsas alarmas en validación y retardos en prueba (R13). **Necesita el paso 12** | `E3_eventos/resultados/resumen_E3.md`, `tabla_retardos.csv`, `deteccion_prueba.png` |
+| 12 | `python E3_eventos/detector.py` | PCA y umbrales del detector, fijados SOLO con `entrenamiento.csv` (R12) y números de compresión (R14). **Necesita los pasos 2 y 8** | `E3_eventos/resultados/parametros_detector.json`, `codo_pca.png` |
+| 13 | `python E3_eventos/evaluacion.py` | Aplica el detector sin reajustar: falsas alarmas en validación y retardos en prueba (R13). **Necesita el paso 12** | `E3_eventos/resultados/resumen_E3.md`, `deteccion_prueba.png` |
 | 14 | `python E1_calibracion/comparar_con_verdad.py` | (Opcional) Verificación final de E1 contra la verdad de la simulación | Solo imprime |
 
 Los simuladores usan semillas fijas: al volver a ejecutarlos se obtienen

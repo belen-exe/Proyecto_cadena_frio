@@ -1,6 +1,14 @@
 {
   "descripcion": "Detector PCA de E3 (R12). Todo fijado SOLO con entrenamiento.csv. Datos SIMULADOS.",
   "Origen": "SIMULADO",
+  "archivos_leidos": [
+    "E3_eventos/datos/entrenamiento.csv"
+  ],
+  "n_muestras_usadas": 1791,
+  "intervalo_t_s_usado": [
+    9.0,
+    1799.0
+  ],
   "ventana_suavizado_s": 10,
   "criterio_k": "varianza acumulada >= 0.9",
   "percentil_umbral": 99.5,

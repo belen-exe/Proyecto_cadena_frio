@@ -76,10 +76,40 @@ def causa_falsa(ti, resultado, eventos, parametros):
     return estadistico, tras_evento
 
 
+def demostrar_solo_entrenamiento(parametros, coeficientes):
+    """
+    R12: demostración NUMÉRICA de que μ, s y los umbrales salen solo de entrenamiento.
+    Se recalcula cada valor con cada sesión por separado: solo la de entrenamiento
+    reproduce lo guardado en el JSON (diferencia ≈ 0). Esto NO cambia el detector.
+    """
+    filas = []
+    for nombre in ["entrenamiento", "validacion", "prueba"]:
+        tabla = pd.read_csv(det.CARPETA_DATOS / f"{nombre}.csv")
+        x, _ = det.preparar_datos(tabla, coeficientes, parametros["ventana_suavizado_s"])
+        x = x[~np.isnan(x).any(axis=1)]
+        t2, q = det.estadisticos(x, parametros)
+        filas.append({
+            "sesion": nombre,
+            "dif_mu_max": float(np.max(np.abs(x.mean(axis=0) - parametros["mu"]))),
+            "dif_s_max": float(np.max(np.abs(x.std(axis=0, ddof=1) - parametros["s"]))),
+            "dif_umbral_T2": abs(float(np.percentile(t2, parametros["percentil_umbral"])) - parametros["umbral_T2"]),
+            "dif_umbral_Q": abs(float(np.percentile(q, parametros["percentil_umbral"])) - parametros["umbral_Q"]),
+        })
+    return pd.DataFrame(filas)
+
+
 def main():
     parametros = json.loads(det.RUTA_PARAMETROS.read_text(encoding="utf-8"))
     coeficientes = cal.cargar_coeficientes()
     eventos = pd.read_csv(det.CARPETA_DATOS / "tabla_eventos.csv")
+
+    # ---------------- R12: demostración de que solo se usó entrenamiento ----------------
+    assert parametros["archivos_leidos"] == ["E3_eventos/datos/entrenamiento.csv"]
+    demo = demostrar_solo_entrenamiento(parametros, coeficientes)
+    print("========== R12: ¿DE QUÉ SESIÓN SALEN LOS PARÁMETROS? ==========")
+    print("(diferencia entre lo guardado en el JSON y lo recalculado con cada sesión)")
+    print(demo.to_string(index=False, float_format=lambda v: f"{v:.2e}"))
+    print()
 
     # ---------------- Validación: falsas alarmas ----------------
     val = correr_detector("validacion", parametros, coeficientes)
@@ -141,11 +171,10 @@ def main():
         print(f"  ADVERTENCIA: en prueba hubo {tasa_pru:.1f} falsas alarmas/h, muy por encima de 1/h "
               "(ver la sección 'Desviaciones' del resumen).")
 
-    tabla_retardo.to_csv(det.CARPETA_RESULTADOS / "tabla_retardos.csv", index=False)
     grafica_prueba(pru, eventos, parametros)
-    escribir_resumen(parametros, horas_val, falsas_val, tasa_val, cumple_val,
+    escribir_resumen(parametros, demo, horas_val, falsas_val, tasa_val, cumple_val,
                      tabla_retardo, porcentaje, falsas_pru, tasa_pru, cumple_todo, diagnostico)
-    print("\nGuardado: E3_eventos/resultados/tabla_retardos.csv, deteccion_prueba.png, resumen_E3.md")
+    print("\nGuardado: E3_eventos/resultados/deteccion_prueba.png, resumen_E3.md")
 
 
 def grafica_prueba(pru, eventos, parametros):
@@ -175,9 +204,13 @@ def grafica_prueba(pru, eventos, parametros):
     plt.close(fig)
 
 
-def escribir_resumen(p, horas_val, falsas_val, tasa_val, cumple_val,
+def escribir_resumen(p, demo, horas_val, falsas_val, tasa_val, cumple_val,
                      tabla_retardo, porcentaje, falsas_pru, tasa_pru, cumple_todo, diagnostico):
     r14 = p["R14"]
+    filas_demo = "\n".join(
+        f"| {d['sesion']} | {d['dif_mu_max']:.1e} | {d['dif_s_max']:.1e} | "
+        f"{d['dif_umbral_T2']:.1e} | {d['dif_umbral_Q']:.1e} |"
+        for d in demo.to_dict("records"))
     lineas_aut = "\n".join(
         f"| {j + 1} | {lam:.4f} | {100 * lam / sum(p['autovalores']):.2f} |"
         for j, lam in enumerate(p["autovalores"]))
@@ -232,6 +265,41 @@ Todos los datos son **SIMULADOS**. Los parámetros del detector se fijaron solo 
 
 ## R12 — Detector
 
+### Formulación matemática
+
+Cada muestra n da un vector de 3 temperaturas calibradas (E1) y suavizadas con un
+promedio móvil de V = {p['ventana_suavizado_s']} muestras:
+
+    x[n] = (1/V) · Σ_(j=0..V−1) T[n−j]          (vector de 3 elementos, °C)
+
+**Entrenamiento** (N = {p['n_muestras_usadas']} muestras de `entrenamiento.csv`):
+
+    μ = (1/N) Σ x[n]                    media de cada sensor
+    s = desviación estándar de cada sensor
+    z[n] = (x[n] − μ) / s               (elemento a elemento)
+    R = ZᵀZ / (N − 1)                   matriz 3 × 3 (Z: las N filas z[n])
+    R·pᵢ = λᵢ·pᵢ                        autovalores λ₁ ≥ λ₂ ≥ λ₃ y autovectores pᵢ
+    P = [p₁ … p_k]                      las k componentes retenidas (3 × k)
+
+**Estadísticos de una muestra nueva** (z con μ y s de entrenamiento):
+
+    t = Pᵀ·z                            coordenadas de z en las componentes retenidas
+    T² = Σ_(i=1..k) tᵢ² / λᵢ            distancia DENTRO del patrón normal
+    Q  = ‖z − P·Pᵀ·z‖²                  lo que el patrón normal NO explica
+
+**Regla de decisión**:
+
+    anómala[n] = (T²[n] > umbral_T²) o (Q[n] > umbral_Q) o (algún ADC ≥ 4090)
+    alarma[n]  = anómala[n] y anómala[n−1] y … y anómala[n−K+1]      (K = {p['K_persistencia']})
+
+**Criterio para k**: el menor k con Σ_(i≤k) λᵢ / Σλᵢ ≥ 0,90.
+
+**Criterio para los umbrales**: percentil {p['percentil_umbral']} de T² y de Q en entrenamiento
+(se acepta que el {100 - p['percentil_umbral']:.1f} % de las muestras normales lo supere; la
+persistencia K filtra los picos aislados).
+
+### Parámetros
+
 | Parámetro | Valor | Cómo se fijó |
 |---|---|---|
 | Suavizado | promedio móvil causal de {p['ventana_suavizado_s']} s | a priori: baja el ruido ≈ 3 veces y es 3 veces más corto que una apertura |
@@ -246,6 +314,20 @@ Autovalores de la matriz de correlación (gráfica de codo en `codo_pca.png`):
 | componente | λ | varianza [%] |
 |---|---|---|
 {lineas_aut}
+
+### Demostración de que solo se usó entrenamiento
+
+1. `detector.py` lee un único archivo de datos: `{p['archivos_leidos'][0]}`
+   (queda registrado en `parametros_detector.json`, campo `archivos_leidos`), con
+   N = {p['n_muestras_usadas']} muestras, t = {p['intervalo_t_s_usado'][0]:.0f}–{p['intervalo_t_s_usado'][1]:.0f} s.
+2. `evaluacion.py` no calcula ningún parámetro: solo carga el JSON y lo aplica.
+3. Comprobación numérica: se recalculan μ, s y los umbrales con cada sesión por separado.
+   Solo entrenamiento reproduce los valores del JSON (diferencia ≈ 0, error de redondeo);
+   con validación o prueba saldrían valores distintos.
+
+| sesión | dif. máx. μ [°C] | dif. máx. s [°C] | dif. umbral T² | dif. umbral Q |
+|---|---|---|---|---|
+{filas_demo}
 
 ## R13 — Desempeño
 
