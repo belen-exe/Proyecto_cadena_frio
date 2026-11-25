@@ -1,0 +1,7 @@
+evento,sensor,inicio [s],fin [s],detectado,retardo [s],meta [s],cumple,alarma previa
+apertura,,600,630,sí,26.0,60,sí,no
+desconexion,3,1200,1260,sí,2.0,20,sí,no
+apertura,,1800,1830,sí,21.0,60,sí,no
+apertura,,2400,2430,sí,26.0,60,sí,no
+desconexion,1,3000,3060,sí,0.0,20,sí,sí
+apertura,,3600,3630,sí,28.0,60,sí,no
