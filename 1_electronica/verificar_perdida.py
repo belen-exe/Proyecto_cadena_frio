@@ -31,8 +31,11 @@ TS_MS = 1000                 # Debe coincidir con TS_MS del firmware
 DURACION_MIN_S = 10 * 60     # R2: al menos 10 minutos
 PERDIDA_MAX_PCT = 0.5        # R2
 
-ENCABEZADO = "t_ms,adc_1,adc_2,adc_3,T_1,T_2,T_3,alarma,Origen"
-NUM_CAMPOS = len(ENCABEZADO.split(","))
+# Encabezados aceptados: firmware de R2 (versión anterior) y firmware de R19 (actual).
+ENCABEZADOS = [
+    "t_ms,adc_1,adc_2,adc_3,T_1,T_2,T_3,alarma,Origen",
+    "t_ms,adc_1,adc_2,adc_3,T_1,T_2,T_3,T2,Q,alarma,t_proc_us,Origen",
+]
 
 
 def leer_captura(ruta):
@@ -40,9 +43,10 @@ def leer_captura(ruta):
     lineas = Path(ruta).read_text(encoding="utf-8", errors="replace").splitlines()
 
     try:
-        inicio = next(i for i, l in enumerate(lineas) if l.strip() == ENCABEZADO)
+        inicio = next(i for i, l in enumerate(lineas) if l.strip() in ENCABEZADOS)
     except StopIteration:
-        sys.exit(f"No se encontró el encabezado '{ENCABEZADO}' en {ruta}")
+        sys.exit(f"No se encontró ninguno de los encabezados {ENCABEZADOS} en {ruta}")
+    num_campos = len(lineas[inicio].strip().split(","))
 
     tiempos, filas, invalidas = [], [], 0
     for linea in lineas[inicio + 1:]:
@@ -51,7 +55,7 @@ def leer_captura(ruta):
             continue
         campos = linea.split(",")
         try:
-            if len(campos) != NUM_CAMPOS or campos[-1] != "SIMULADO":
+            if len(campos) != num_campos or campos[-1] != "SIMULADO":
                 raise ValueError
             t = int(campos[0])
             [int(c) for c in campos[1:4]]

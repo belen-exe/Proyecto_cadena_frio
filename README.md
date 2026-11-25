@@ -32,13 +32,14 @@ Proyecto_cadena_frio/
 ├── requirements.txt          Librerías de Python (numpy, pandas, matplotlib)
 ├── comun/                    Modelo del sensor simulado (T → ADC), estructuras de calibración y mínimos cuadrados propios
 ├── 0_diseno/                 Diseño del circuito, resistor fijo, resolución y esquemático (R1)
-├── 1_electronica/            Justificación de Ts y verificación de pérdida de muestras (R2), montaje (R3)
-│   ├── firmware_esp32/       Proyecto PlatformIO + Wokwi del ESP32
+├── 1_electronica/            Ts y pérdida de muestras (R2), montaje (R3), cálculo en línea (R19) y validación ESP32–Python (R20)
+│   ├── firmware_esp32/       Proyecto PlatformIO + Wokwi del ESP32 (calibración E1 + detector E3)
 │   └── pruebas_simulacion/   Capturas del monitor serie del firmware
 ├── E1_calibracion/           Experimento E1 y calibración ADC → °C (R4–R7)
 ├── E2_calentamiento/         Experimento E2, modelo térmico con PSO y diseño del vehículo (R8–R10)
 ├── E3_eventos/               Experimento E3: datos normales y eventos (R11) y detector PCA (R12–R14)
 ├── rutas/                    Planeación de rutas (R15–R18)
+├── demostracion_R21/         Guion y evidencia de la demostración en vivo (R21)
 └── archivo/                  Simuladores y CSV antiguos, solo para trazabilidad
 ```
 
@@ -47,7 +48,8 @@ Proyecto_cadena_frio/
 | `comun/` | Soporte de R4–R11 (modelo del sensor, estructuras de calibración, mínimos cuadrados, tabla t) | Hecho |
 | `0_diseno/` | R1 | Hecho |
 | `1_electronica/` | R2, R3 | Parcial (faltan la captura de 10 min y la captura de pantalla de Wokwi) |
-| `1_electronica/` | R19, R20, R21 | PENDIENTE (necesitan la calibración de E1 y el detector) |
+| `1_electronica/` | R19, R20 | Firmware y validador listos; falta grabar la captura de Wokwi (`captura_R20.csv`) |
+| `demostracion_R21/` | R21 | Guion listo; falta hacer la demostración y guardar la evidencia |
 | `E1_calibracion/` | R4, R5, R6, R7 | Hecho (simulado) |
 | `E2_calentamiento/` | R8, R9, R10 | Hecho (simulado) |
 | `E3_eventos/` | R11 (datos y tabla de eventos) | Hecho (simulado) |
@@ -79,10 +81,11 @@ E1_calibracion   ──► coeficientes de calibración ADC → °C por canal
                1_electronica/firmware_esp32  (calibración + detector en el ESP32)
 ```
 
-Hoy existen `comun/`, E1 (que produce `E1_calibracion/resultados/coeficientes_calibracion.json`)
-y E2, que ya convierte con esos coeficientes. El exploratorio de E3 y la justificación
-de Ts todavía usan la conversión β nominal, marcada como **"conversión provisional,
-sin calibrar"**. `rutas/` es independiente de los demás.
+E1 produce `E1_calibracion/resultados/coeficientes_calibracion.json`, que usan E2, el
+detector de E3 y el firmware. E3 produce `E3_eventos/resultados/parametros_detector.json`.
+`1_electronica/generar_parametros.py` copia ambos JSON a `firmware_esp32/include/parametros.h`.
+El exploratorio de E3 y la justificación de Ts usan la conversión β nominal, marcada
+como **"conversión provisional, sin calibrar"**. `rutas/` es independiente de los demás.
 
 ## 3. Instalación
 
@@ -113,8 +116,10 @@ repositorio, en este orden:
 | 11 | `python E2_calentamiento/diseno_vehiculo.py` | Cálculos de R10. **Necesita el paso 10** | `E2_calentamiento/resultados/resumen_R10.md`, `diseno_R10.png` |
 | 12 | `python E3_eventos/detector.py` | PCA y umbrales del detector, fijados SOLO con `entrenamiento.csv` (R12) y números de compresión (R14). **Necesita los pasos 2 y 8** | `E3_eventos/resultados/parametros_detector.json`, `codo_pca.png` |
 | 13 | `python E3_eventos/evaluacion.py` | Aplica el detector sin reajustar: falsas alarmas en validación y retardos en prueba (R13). **Necesita el paso 12** | `E3_eventos/resultados/resumen_E3.md`, `deteccion_prueba.png` |
-| 14 | `python rutas/planear_rutas.py` | Hormigas vs voraz vs óptimo (R16), ajuste con abejas (R17) y plan final (R18); tarda unos 3–4 min. Formulación (R15) en `rutas/formulacion.md` | `rutas/resultados/resumen_rutas.md`, `plan_rutas.png` |
-| 15 | `python E1_calibracion/comparar_con_verdad.py` | (Opcional) Verificación final de E1 contra la verdad de la simulación | Solo imprime |
+| 14 | `python 1_electronica/generar_parametros.py` | Copia la calibración de E1 y el detector de E3 al firmware (R19); después hay que recompilar. **Necesita los pasos 8 y 12** | `1_electronica/firmware_esp32/include/parametros.h` |
+| 15 | `python 1_electronica/validar_R20.py [captura.csv]` | Compara ESP32 vs Python con las mismas lecturas ADC (R20); necesita la captura de Wokwi | `1_electronica/resultados/validacion_R20.md`, `comparacion_R20.csv` |
+| 16 | `python rutas/planear_rutas.py` | Hormigas vs voraz vs óptimo (R16), ajuste con abejas (R17) y plan final (R18); tarda unos 3–4 min. Formulación (R15) en `rutas/formulacion.md` | `rutas/resultados/resumen_rutas.md`, `plan_rutas.png` |
+| 17 | `python E1_calibracion/comparar_con_verdad.py` | (Opcional) Verificación final de E1 contra la verdad de la simulación | Solo imprime |
 
 Los simuladores usan semillas fijas: al volver a ejecutarlos se obtienen
 exactamente los mismos archivos. Los scripts que abren gráficas esperan a que se
@@ -160,23 +165,25 @@ reproducir el montaje en `1_electronica/README.md`.
 
 1. En <https://wokwi.com> cree un proyecto nuevo **ESP32 (Arduino)**.
 2. Copie el contenido de `src/main.cpp` en `sketch.ino` y el de `diagram.json`
-   en la pestaña `diagram.json`.
+   en la pestaña `diagram.json`. Cree una pestaña nueva llamada `parametros.h`
+   y pegue en ella `include/parametros.h`.
 3. Pulse ▶ (Start). El monitor serie aparece debajo del circuito.
 
 ### Cómo leer el monitor serie
 
-La primera línea, que empieza por `#`, es informativa. Luego viene el encabezado y
-una fila por segundo:
+Las líneas que empiezan por `#` son mensajes (arranque, memoria libre, `# ALARMA …`,
+`# Fin de la alarma …`). Luego viene el encabezado y una fila por segundo:
 
 ```
-# Sistema de cadena de frio iniciado (SIMULADO)
-t_ms,adc_1,adc_2,adc_3,T_1,T_2,T_3,alarma,Origen
+# Monitor de cadena de frio con calibracion E1 y detector PCA E3 (SIMULADO)
+# Memoria libre (heap) al iniciar [bytes]: ...
+t_ms,adc_1,adc_2,adc_3,T_1,T_2,T_3,T2,Q,alarma,t_proc_us,Origen
 ```
 
 El LED (GPIO2) se enciende cuando `alarma = 1`. Para guardar una corrida, copie
 el texto del monitor serie a un `.csv` dentro de `1_electronica/pruebas_simulacion/`.
-La conversión a °C del firmware es **provisional** (β nominal) hasta que exista la
-calibración de E1.
+Los deslizadores arrancan en el estado normal del detector (5,0 / 5,3 / 4,8 °C; ver
+`demostracion_R21/README.md`).
 
 ## 6. Diccionario de datos
 
@@ -246,15 +253,21 @@ Instante real de inicio y fin de cada evento de la sesión de prueba.
 | `t_fin_s` | s | Fin del evento (primer instante en que ya no está activo) |
 | `Origen` | — | Siempre `SIMULADO` |
 
-### Salida serie del firmware (formato actual)
+### Salida serie del firmware (formato actual, R19)
 
 | Columna | Unidad | Significado |
 |---|---|---|
 | `t_ms` | ms | Instante de la lectura desde el arranque del ESP32 (`millis()`) |
 | `adc_1`, `adc_2`, `adc_3` | cuentas (0–4095) | Lectura cruda de GPIO34, GPIO35 y GPIO32 |
-| `T_1`, `T_2`, `T_3` | °C | Temperatura con la conversión β provisional; `NA` si la lectura es inválida (ADC ≤ 5 o ≥ 4090, o fuera de 0–40 °C) |
-| `alarma` | 0 / 1 | 1 si algún canal está fuera de 2–8 °C o es inválido |
+| `T_1`, `T_2`, `T_3` | °C | Temperatura **calibrada** con los coeficientes de E1; `NA` si el ADC es ≤ 5 o ≥ 4090 |
+| `T2`, `Q` | — | Estadísticos del detector de E3; `NA` mientras la ventana de 10 s no tenga 10 muestras válidas seguidas |
+| `alarma` | 0 / 1 | 1 si la muestra fue anómala (T² o Q sobre el umbral, o canal desconectado) 3 veces seguidas |
+| `t_proc_us` | µs | Tiempo de lectura + cálculo del ciclo (`micros()`), para R20 |
 | `Origen` | — | Siempre `SIMULADO` |
+
+Las capturas antiguas (`captura_10min.csv`, `captura_desconexion.csv`) tienen el
+formato anterior `t_ms,adc_1,adc_2,adc_3,T_1,T_2,T_3,alarma,Origen` (β nominal y
+alarma por rango 2–8 °C); `verificar_perdida.py` acepta los dos formatos.
 
 ### `1_electronica/pruebas_simulacion/mediciones_ntc.csv` (formato ANTERIOR)
 
