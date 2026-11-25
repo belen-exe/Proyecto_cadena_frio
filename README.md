@@ -38,7 +38,7 @@ Proyecto_cadena_frio/
 ├── E1_calibracion/           Experimento E1 y calibración ADC → °C (R4–R7)
 ├── E2_calentamiento/         Experimento E2, modelo térmico con PSO y diseño del vehículo (R8–R10)
 ├── E3_eventos/               Experimento E3: datos normales y eventos (R11) y detector PCA (R12–R14)
-├── rutas/                    Planeación de rutas (R15–R18) — PENDIENTE
+├── rutas/                    Planeación de rutas (R15–R18)
 └── archivo/                  Simuladores y CSV antiguos, solo para trazabilidad
 ```
 
@@ -52,7 +52,7 @@ Proyecto_cadena_frio/
 | `E2_calentamiento/` | R8, R9, R10 | Hecho (simulado) |
 | `E3_eventos/` | R11 (datos y tabla de eventos) | Hecho (simulado) |
 | `E3_eventos/` | R12, R13, R14 (detector PCA) | Hecho (simulado) |
-| `rutas/` | R15, R16, R17, R18 | PENDIENTE |
+| `rutas/` | R15, R16, R17, R18 | Hecho |
 | Todo el repositorio | R22 (informe y reproducibilidad) | Parcial |
 
 Detalle de lo "Parcial" en `1_electronica/`: el firmware ya lee los 3 canales con
@@ -113,7 +113,8 @@ repositorio, en este orden:
 | 11 | `python E2_calentamiento/diseno_vehiculo.py` | Cálculos de R10. **Necesita el paso 10** | `E2_calentamiento/resultados/resumen_R10.md`, `diseno_R10.png` |
 | 12 | `python E3_eventos/detector.py` | PCA y umbrales del detector, fijados SOLO con `entrenamiento.csv` (R12) y números de compresión (R14). **Necesita los pasos 2 y 8** | `E3_eventos/resultados/parametros_detector.json`, `codo_pca.png` |
 | 13 | `python E3_eventos/evaluacion.py` | Aplica el detector sin reajustar: falsas alarmas en validación y retardos en prueba (R13). **Necesita el paso 12** | `E3_eventos/resultados/resumen_E3.md`, `deteccion_prueba.png` |
-| 14 | `python E1_calibracion/comparar_con_verdad.py` | (Opcional) Verificación final de E1 contra la verdad de la simulación | Solo imprime |
+| 14 | `python rutas/planear_rutas.py` | Hormigas vs voraz vs óptimo (R16), ajuste con abejas (R17) y plan final (R18); tarda unos 3–4 min. Formulación (R15) en `rutas/formulacion.md` | `rutas/resultados/resumen_rutas.md`, `plan_rutas.png` |
+| 15 | `python E1_calibracion/comparar_con_verdad.py` | (Opcional) Verificación final de E1 contra la verdad de la simulación | Solo imprime |
 
 Los simuladores usan semillas fijas: al volver a ejecutarlos se obtienen
 exactamente los mismos archivos. Los scripts que abren gráficas esperan a que se
