@@ -1,4 +1,4 @@
-# 1_electronica — Firmware, adquisición y montaje (R2, R3)
+# 1_electronica — Firmware, adquisición, montaje e integración (R2, R3, R19, R20)
 
 Todo el montaje es **SIMULADO** en Wokwi.
 
@@ -9,6 +9,8 @@ Todo el montaje es **SIMULADO** en Wokwi.
 | `firmware_esp32/` | Proyecto PlatformIO + Wokwi (`src/main.cpp`, `diagram.json`, `wokwi.toml`) |
 | `justificacion_ts.py` | Justificación numérica de Ts (R2) → `resultados/justificacion_Ts.md` |
 | `verificar_perdida.py` | Calcula la pérdida de muestras de una captura serie (R2) → `resultados/perdida_muestras.md` |
+| `generar_parametros.py` | Copia la calibración de E1 y el detector de E3 a `firmware_esp32/include/parametros.h` (R19) |
+| `validar_R20.py` | Compara ESP32 vs Python con las mismas lecturas ADC (R20) → `resultados/validacion_R20.md` |
 | `pruebas_simulacion/` | Capturas del monitor serie |
 | `resultados/` | Informes generados |
 
@@ -45,9 +47,10 @@ Todo el montaje es **SIMULADO** en Wokwi.
 1. Cree un proyecto **ESP32 (Arduino)**.
 2. Agregue (botón **+**) tres "NTC Temperature Sensor", un resistor y un LED rojo.
 3. Ponga el resistor en 220 Ω y cablee según la tabla de pines.
-4. Copie `firmware_esp32/src/main.cpp` en `sketch.ino`.
+4. Copie `firmware_esp32/src/main.cpp` en `sketch.ino` y cree una pestaña `parametros.h`
+   con el contenido de `firmware_esp32/include/parametros.h`.
 5. Pulse ▶. El monitor serie debe mostrar el encabezado
-   `t_ms,adc_1,adc_2,adc_3,T_1,T_2,T_3,alarma,Origen` y una fila por segundo.
+   `t_ms,adc_1,adc_2,adc_3,T_1,T_2,T_3,T2,Q,alarma,t_proc_us,Origen` y una fila por segundo.
 
 Atajo: pegar `firmware_esp32/diagram.json` en la pestaña `diagram.json` crea el
 circuito completo de una vez.
@@ -92,3 +95,59 @@ python 1_electronica/verificar_perdida.py
 
 Criterio de aceptación: pérdida ≤ 0,5 % en un registro ≥ 10 min.
 **PENDIENTE: falta grabar la captura** (no hay corrida de 10 min en el formato actual).
+
+## R19 — Cálculo en línea
+
+El firmware (`firmware_esp32/src/main.cpp`) hace en **cada ciclo**, sin el computador:
+
+1. Lee los 3 canales.
+2. **Temperatura calibrada** con los coeficientes de E1 (estructura M2):
+   L = ln(adc / (4095 − adc)),  T = 1 / (θ0 + θ1·L) − 273,15.
+3. **Detector de E3:** promedio móvil de 10 muestras, z = (x − μ)/s, t = Pᵀz,
+   T² = Σ t²/λ, Q = ‖z − P·t‖², comparación con los umbrales y persistencia K = 3.
+   Un ADC ≥ 4090 (o ≤ 5) marca la muestra como anómala directamente.
+4. Si hay alarma: **LED encendido** (GPIO2) y mensaje `# ALARMA en t_ms=…: causa`.
+
+Todos los números (θ, μ, s, P, λ, umbrales, K, ventana) están en
+`firmware_esp32/include/parametros.h`, que **no se edita a mano**: lo genera
+`python 1_electronica/generar_parametros.py` a partir de los JSON de E1 y E3.
+Si se repite E1 o el entrenamiento de E3, hay que volver a generarlo y recompilar.
+
+El firmware ya no usa la β nominal ni la alarma por rango 2–8 °C: la alarma es la
+del detector, que es lo que piden R19 y R21.
+
+**Evidencia pendiente (equipo):** una captura del monitor serie con una alarma. Sirve
+la misma captura de R20 (ver abajo), porque incluye una apertura simulada.
+
+## R20 — Validación cruzada ESP32 – Python
+
+### Cómo grabar la captura
+
+1. Compile y arranque Wokwi (los deslizadores empiezan en el estado normal: 5,0 / 5,3 / 4,8 °C).
+2. Deje correr al menos **2 minutos** (R20 pide al menos 50 muestras). Durante la
+   corrida, para que la comparación incluya alarmas:
+   - a los ~30 s suba el sensor 1 a 6,0 °C durante ~20 s y vuélvalo a 5,0 °C;
+   - a los ~80 s desconecte ~10 s el cable OUT de un sensor y vuelva a conectarlo.
+3. Copie todo el monitor serie en `1_electronica/pruebas_simulacion/captura_R20.csv`.
+4. Ejecute `python 1_electronica/validar_R20.py`.
+
+### Qué reporta
+
+`resultados/validacion_R20.md` y `resultados/comparacion_R20.csv` (tabla muestra a muestra):
+diferencia máxima de temperatura (meta ≤ 0,05 °C), diferencias de T² y Q, coincidencia
+de la alarma, tiempo por ciclo (`t_proc_us`, medido con `micros()`) y memoria libre
+(`ESP.getFreeHeap()` al arrancar).
+
+**Memoria según la compilación** (`pio run`, firmware de R19):
+
+| Memoria | Usada | Total | % |
+|---|---|---|---|
+| RAM | 22 332 bytes | 327 680 bytes | 6,8 % |
+| Flash | 303 872 bytes | 1 310 720 bytes | 23,2 % |
+
+**Prueba previa sin Wokwi:** se emuló el cálculo del firmware en Python con aritmética
+`float` de 32 bits (como el ESP32) sobre 250 lecturas de `E3_eventos/datos/prueba.csv`
+(con una desconexión). La diferencia máxima de temperatura fue 0,0001 °C y la alarma
+coincidió en el 100 % de las muestras. Esto no reemplaza la captura real de Wokwi.
+
+**PENDIENTE: falta grabar `captura_R20.csv` en Wokwi.**
