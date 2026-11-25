@@ -5,26 +5,27 @@
 
 ## (a) Dinámicas observadas en los datos
 
-**Ruido en operación normal** (entrenamiento, 30 min):
+**Ruido en operación normal** (entrenamiento, 30 min), estimado como σ = std(x[n+1] − x[n])/√2
+para no confundir la oscilación lenta de la nevera con ruido:
 
 | Canal | σ [cuentas] | σ [°C] |
 |---|---|---|
-| adc_1 | 4.06 | 0.096 |
-| adc_2 | 3.94 | 0.093 |
-| adc_3 | 3.94 | 0.094 |
+| adc_1 | 3.99 | 0.095 |
+| adc_2 | 3.98 | 0.094 |
+| adc_3 | 3.97 | 0.095 |
 
 **Rapidez de calentamiento durante las aperturas** (pendiente por mínimos cuadrados
 dentro de cada apertura de 30 s, en °C/min):
 
 | Inicio [s] | adc_1 | adc_2 | adc_3 |
 |---|---|---|---|
-| 600 | 0.750 | 0.399 | 0.199 |
-| 1800 | 0.634 | 0.430 | 0.165 |
-| 2400 | 0.642 | 0.392 | 0.320 |
-| 3600 | 0.445 | 0.192 | 0.174 |
+| 600 | 0.674 | 0.348 | 0.128 |
+| 1800 | 0.677 | 0.476 | 0.221 |
+| 2400 | 0.588 | 0.323 | 0.262 |
+| 3600 | 0.482 | 0.244 | 0.239 |
 
-- Pendiente media del canal más expuesto: **0.618 °C/min** (0.0103 °C/s, canal adc_1).
-- Con Ts = 1 s la temperatura cambia 0.0103 °C por muestra,
+- Pendiente media del canal más expuesto: **0.605 °C/min** (0.0101 °C/s, canal adc_1).
+- Con Ts = 1 s la temperatura cambia 0.0101 °C por muestra,
   0.11 veces el ruido: una muestra sola no basta y el detector
   debe acumular varias. El cambio alcanza 3σ de ruido tras **28 s**, dentro de
   los 60 s permitidos. Muestrear más rápido no acelera esto: lo fija la física.

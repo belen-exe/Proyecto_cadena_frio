@@ -314,15 +314,15 @@ alimenta ningún resultado.
   del ESP32 no es lineal cerca de los extremos y es más ruidoso.
 - **El ruido es un supuesto**: 0,08 °C de ruido de temperatura y 2 cuentas de ruido
   del ADC no salen de mediciones; tampoco las tolerancias de ±1 % de R0, β y R_fijo.
-- **Modelo térmico simplificado**: primer orden (Newton) con τ supuestas
-  (cerrada 2000 min, abierta 28,07 min) y un supuesto nuevo, `TAU_RECUPERACION =
+- **Modelo térmico simplificado**: primer orden (Newton) con τ cerrada = 221 min
+  (la identificada en R9, así E2 y E3 describen la misma caja), τ abierta = 28,07 min
+  (supuesta) y un supuesto nuevo, `TAU_RECUPERACION =
   2 min`, para que el aire junto al sensor vuelva a la temperatura del contenido
   tras cerrar la tapa. El contenido no se calienta durante una apertura de 30 s,
   y la respuesta distinta de cada sensor es un factor supuesto (1,0; 0,6; 0,35).
-- **E2 y E3 no comparten la misma constante de tiempo**: E2 identifica para la caja
-  τ ≈ 221 min (calculado de su descripción física), mientras que el simulador de E3
-  conserva el valor original τ cerrada = 2000 min. Conviene unificarlos usando en E3
-  el τ identificado en R9.
+- **Término común supuesto en E3**: el 60 % de la oscilación de la nevera (±0,3 °C)
+  llega por igual a los tres sensores. Es lo que correlaciona los canales en operación
+  normal; su tamaño es un supuesto, no una medición.
 - **E2 es de primer orden por construcción**: el simulador usa el mismo tipo de modelo
   que se identifica, así que el ajuste es casi perfecto. En una caja real habría
   dinámicas más lentas (carga, paredes) y residuos con estructura.
