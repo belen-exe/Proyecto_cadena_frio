@@ -18,7 +18,12 @@ Modelo térmico (ley de enfriamiento de Newton, solución EXACTA por paso)
   * Aire junto al sensor i:
       - tapa abierta  -> tiende al aire de la cocina con τ_i = TAU_ABIERTA / factor_i
       - tapa cerrada  -> vuelve a la temperatura del contenido con τ = TAU_RECUPERACION
-  * Medición del sensor i = aire_i + desfase_i + ruido gaussiano (°C),
+  * Término común: la oscilación del aire de la nevera (ciclo del compresor) se
+    cuela por las paredes y la tapa y llega a los TRES sensores a la vez:
+        común(t) = GANANCIA_COMUN · (T_nevera(t) − NEVERA_MEDIA_C)
+    Es lo que hace que los sensores estén correlacionados en operación normal
+    (la estructura que después aprovecha el PCA).
+  * Medición del sensor i = aire_i + común + desfase_i + ruido gaussiano (°C),
     que luego pasa por comun/modelo_sensor.py para obtener la cuenta ADC.
   * Desconexión de un sensor: el ADC marca ≈ 4095 (no NaN).
 
@@ -63,14 +68,16 @@ NUM_SENSORES = ms.NUM_SENSORES
 # Temperatura inicial del interior de la caja [°C].
 TEMP_INICIAL = 5.0
 
-# Constantes de tiempo térmicas [min] (valores del modelo original, sin cambios).
-TAU_CERRADA = 2000.0
-TAU_ABIERTA = 28.07
+# Constantes de tiempo térmicas [min].
+# TAU_CERRADA: la misma caja de E2. Se usa el τ identificado en R9 (PSO: 221,4 min;
+# regresión: 220,7 min) para que E2 y E3 describan el mismo contenedor.
+TAU_CERRADA = 221.0
+TAU_ABIERTA = 28.07   # valor del modelo original, sin cambios
 
 # Constante de tiempo con la que el aire junto al sensor vuelve a la temperatura
 # del contenido después de cerrar la tapa [min].
 # SUPUESTO NUEVO de este simulador: sin él, el calentamiento de cada apertura no
-# se recuperaría nunca (τ = 2000 min) y los eventos se acumularían.
+# se recuperaría (el contenido cambia con τ = 221 min) y los eventos se acumularían.
 TAU_RECUPERACION = 2.0
 
 # Desfase fijo de cada sensor por su posición dentro de la caja [°C] (sin cambios).
@@ -78,6 +85,11 @@ DESVIACIONES = [0.0, 0.15, -0.20]
 
 # Ruido de la temperatura en el punto de medición [°C] (sin cambios).
 RUIDO_TEMPERATURA_C = 0.08
+
+# Fracción de la oscilación del aire de la nevera que llega a los tres sensores
+# por igual (término común). SUPUESTO: 0,6 · 0,5 °C = ±0,3 °C, bastante mayor que
+# el ruido (0,08 °C), así que en operación normal los 3 canales suben y bajan juntos.
+GANANCIA_COMUN = 0.6
 
 # Factor de respuesta de cada sensor durante una apertura (1 = el más expuesto).
 # Sensor 1: junto a la tapa; sensor 2: a media altura; sensor 3: al fondo.
@@ -184,6 +196,7 @@ def simular_sesion(nombre, eventos):
     hist_medida = np.empty((num_muestras, NUM_SENSORES))
     hist_nevera = np.empty(num_muestras)
     hist_cocina = np.empty(num_muestras)
+    hist_comun = np.empty(num_muestras)
     desconectado = np.zeros((num_muestras, NUM_SENSORES), dtype=bool)
     tapa_abierta = np.zeros(num_muestras, dtype=bool)
 
@@ -208,7 +221,9 @@ def simular_sesion(nombre, eventos):
         hist_cocina[k] = aire_cocina
 
         ruido = rng.normal(0, RUIDO_TEMPERATURA_C, size=NUM_SENSORES)
-        hist_medida[k] = temp_aire + desviaciones + ruido
+        comun = GANANCIA_COMUN * (aire_nevera - NEVERA_MEDIA_C)   # igual para los 3
+        hist_comun[k] = comun
+        hist_medida[k] = temp_aire + comun + desviaciones + ruido
 
         # Avanzar un paso Ts
         if tapa_abierta[k]:
@@ -245,12 +260,13 @@ def simular_sesion(nombre, eventos):
         "T_nevera_C": np.round(hist_nevera, 4).tolist(),
         "T_cocina_C": np.round(hist_cocina, 4).tolist(),
         "T_contenido_C": np.round(hist_contenido, 4).tolist(),
+        "termino_comun_C": np.round(hist_comun, 4).tolist(),
         "tapa_abierta": tapa_abierta.astype(int).tolist(),
     }
     for i in range(NUM_SENSORES):
-        # Temperatura real en el punto de medición (aire + desfase), sin ruido.
+        # Temperatura real en el punto de medición (aire + común + desfase), sin ruido.
         verdad[f"T_real_sensor_{i + 1}_C"] = np.round(
-            hist_aire[:, i] + desviaciones[i], 4
+            hist_aire[:, i] + hist_comun + desviaciones[i], 4
         ).tolist()
         verdad[f"desconectado_sensor_{i + 1}"] = desconectado[:, i].astype(int).tolist()
 
@@ -295,6 +311,7 @@ def main():
             "TAU_RECUPERACION_min": TAU_RECUPERACION,
             "DESVIACIONES_C": DESVIACIONES,
             "RUIDO_TEMPERATURA_C": RUIDO_TEMPERATURA_C,
+            "GANANCIA_COMUN": GANANCIA_COMUN,
             "FACTOR_RESPUESTA_APERTURA": FACTOR_RESPUESTA_APERTURA,
             "NEVERA_MEDIA_C": NEVERA_MEDIA_C,
             "NEVERA_AMPLITUD_C": NEVERA_AMPLITUD_C,

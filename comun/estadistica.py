@@ -3,7 +3,7 @@ Herramientas estadísticas PROPIAS, usadas por E1 (calibración) y E2 (identific
 
 - ajustar_mco: mínimos cuadrados ordinarios con álgebra matricial propia
   (ecuaciones normales θ = (XᵀX)⁻¹·Xᵀ·y), usando solo primitivas de numpy.linalg
-  (inv, svd, eigvalsh, cond). No usa funciones que hagan la regresión completa
+  (inv, eigvalsh, cond). No usa funciones que hagan la regresión completa
   (lstsq, pinv, polyfit).
 - t_tabla: valor t de Student para un intervalo al 95 %, tomado de la tabla t.
 """
@@ -50,9 +50,6 @@ def ajustar_mco(X, y):
 
         ∇J = −2·Xᵀ(y − Xθ) = 0   =>   (XᵀX)·θ = Xᵀ·y   =>   θ = (XᵀX)⁻¹·Xᵀ·y
 
-    Como comprobación de confiabilidad numérica, el mismo problema se resuelve
-    también por SVD y se comparan los resultados.
-
     Devuelve un diccionario con:
         theta, residuos, s2 (varianza residual), gl (n − p), cov (s²·(XᵀX)⁻¹),
         error_estandar, y diagnósticos de optimalidad y de confiabilidad numérica.
@@ -81,12 +78,6 @@ def ajustar_mco(X, y):
     # 2º orden: ∇²J = 2·XᵀX definida positiva  =>  mínimo global único
     autovalores_hessiano = np.linalg.eigvalsh(2 * XtX)
 
-    # --- Confiabilidad numérica: la SVD (X = U·S·Vᵀ) debe dar el mismo θ ---
-    U, S, Vt = np.linalg.svd(X, full_matrices=False)
-    theta_svd = Vt.T @ ((U.T @ y) / S)
-
-    escala = np.maximum(np.abs(theta), 1e-300)
-
     return {
         "theta": theta,
         "residuos": residuos,
@@ -100,16 +91,15 @@ def ajustar_mco(X, y):
         "XtX_inv": XtX_inv,
         "error_estandar": np.sqrt(np.diag(cov)),
         "diagnostico": {
-            "norma_gradiente": float(np.max(np.abs(gradiente))),
-            "norma_gradiente_relativa": float(
-                np.max(np.abs(X.T @ residuos))
+            # Gradiente relativo: |∇J| dividido por la escala de X y de los residuos,
+            # para que no dependa de las unidades. ≈ 0 indica que se llegó al óptimo.
+            "gradiente_relativo": float(
+                np.max(np.abs(gradiente / 2))
                 / (np.linalg.norm(X, 2) * max(np.linalg.norm(residuos), 1e-300))
             ),
             "autovalor_min_hessiano": float(autovalores_hessiano.min()),
-            "autovalor_max_hessiano": float(autovalores_hessiano.max()),
+            # Confiabilidad numérica: si cond(X) es enorme, (XᵀX)⁻¹ pierde precisión.
             "numero_condicion_X": float(np.linalg.cond(X)),
-            "numero_condicion_XtX": float(np.linalg.cond(XtX)),
-            "dif_rel_max_normales_vs_SVD": float(np.max(np.abs(theta - theta_svd) / escala)),
         },
     }
 

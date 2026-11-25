@@ -42,24 +42,24 @@ Criterio: mínimos cuadrados en la variable y = 1/T_K, resuelto con las
 ecuaciones normales: **θ = (XᵀX)⁻¹·Xᵀ·y** (matriz de diseño X por canal).
 Coeficientes con su incertidumbre (error estándar = raíz de la diagonal de cov = s²·(XᵀX)⁻¹):
 
-| canal | parametro | valor | error_estandar | error_relativo_% |
-|---|---|---|---|---|
-| 1 | θ0 | 0.00335566 | 1.55042e-07 | 0.00462031 |
-| 1 | θ1 | 0.000252583 | 2.26655e-07 | 0.089735 |
-| 2 | θ0 | 0.00335637 | 1.49785e-07 | 0.00446271 |
-| 2 | θ1 | 0.000254023 | 2.20523e-07 | 0.0868121 |
-| 3 | θ0 | 0.00335298 | 1.46861e-07 | 0.00438002 |
-| 3 | θ1 | 0.00025487 | 2.1549e-07 | 0.084549 |
+| canal | parametro | valor | error_estandar |
+|---|---|---|---|
+| 1 | θ0 | 0.00335566 | 1.55042e-07 |
+| 1 | θ1 | 0.000252583 | 2.26655e-07 |
+| 2 | θ0 | 0.00335637 | 1.49785e-07 |
+| 2 | θ1 | 0.000254023 | 2.20523e-07 |
+| 3 | θ0 | 0.00335298 | 1.46861e-07 |
+| 3 | θ1 | 0.00025487 | 2.1549e-07 |
 
-Condiciones de optimalidad (∇J = −2Xᵀr ≈ 0; ∇²J = 2XᵀX con autovalores > 0 → mínimo
-global único) y confiabilidad numérica (número de condición y diferencia relativa
-entre las ecuaciones normales y la SVD):
+- **Gradiente relativo ≈ 0** (∇J = −2Xᵀr): se está en un punto donde J no baja más.
+- **λ mín. del hessiano > 0** (∇²J = 2XᵀX): ese punto es un mínimo, y es único.
+- **cond(X) pequeño**: la inversa (XᵀX)⁻¹ se calculó sin perder precisión.
 
-| canal | gradiente máx. (∇J) | gradiente relativo | λ mín. hessiano | λ máx. hessiano | cond(X) | cond(XᵀX) | dif. normales vs SVD |
-|---|---|---|---|---|---|---|---|
-| 1 | 6.07e-17 | 1.4e-12 | 21.4 | 60.8 | 1.69 | 2.85 | 2.58e-16 |
-| 2 | 7.89e-17 | 1.88e-12 | 21.2 | 60.6 | 1.69 | 2.86 | 2.56e-15 |
-| 3 | 2.78e-17 | 6.77e-13 | 20.9 | 61.1 | 1.71 | 2.93 | 1.06e-15 |
+| canal | gradiente relativo | λ mín. hessiano | cond(X) |
+|---|---|---|---|
+| 1 | 1.4e-12 | 21.4 | 1.69 |
+| 2 | 1.88e-12 | 21.2 | 1.69 |
+| 3 | 6.77e-13 | 20.9 | 1.71 |
 
 **Intervalo de predicción al 95 %** de una nueva lectura:
 ŷ ± t·s·√(1 + x₀ᵀ(XᵀX)⁻¹x₀) (t de la tabla t), transformado a °C. Evaluado en los

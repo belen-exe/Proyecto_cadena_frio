@@ -66,10 +66,13 @@ prueba = pd.read_csv(CARPETA_E3 / "prueba.csv")
 eventos = pd.read_csv(CARPETA_E3 / "tabla_eventos.csv")
 canales = [c for c in entrenamiento.columns if c.startswith("adc_")]
 
-# Ruido en operación normal (entrenamiento)
-ruido_cuentas = entrenamiento[canales].std()
+# Ruido en operación normal (entrenamiento).
+# No se usa la desviación estándar directa porque incluye la oscilación lenta de la
+# nevera (que no es ruido). La diferencia entre dos muestras seguidas cancela lo que
+# cambia lento y deja solo el ruido: var(x[n+1] − x[n]) = 2·σ²  ->  σ = std(dif)/√2.
+ruido_cuentas = entrenamiento[canales].diff().std() / np.sqrt(2)
 temp_entrenamiento = pd.DataFrame({c: ms.adc_a_temperatura_beta(entrenamiento[c]) for c in canales})
-ruido_c = temp_entrenamiento.std()
+ruido_c = temp_entrenamiento.diff().std() / np.sqrt(2)
 
 # Rapidez de calentamiento durante cada apertura: pendiente por mínimos cuadrados
 temp_prueba = pd.DataFrame({c: ms.adc_a_temperatura_beta(prueba[c]) for c in canales})
@@ -149,7 +152,8 @@ informe = f"""# Justificación numérica de Ts (R2)
 
 ## (a) Dinámicas observadas en los datos
 
-**Ruido en operación normal** (entrenamiento, 30 min):
+**Ruido en operación normal** (entrenamiento, 30 min), estimado como σ = std(x[n+1] − x[n])/√2
+para no confundir la oscilación lenta de la nevera con ruido:
 
 | Canal | σ [cuentas] | σ [°C] |
 |---|---|---|

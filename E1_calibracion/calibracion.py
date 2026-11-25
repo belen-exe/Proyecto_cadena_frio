@@ -12,8 +12,7 @@ Pasos
    un 5 % al mínimo.
 3. R6: con la estructura elegida, por canal: coeficientes ± error estándar,
    intervalo de predicción al 95 %, condiciones de optimalidad (gradiente nulo y
-   hessiano definido positivo) y confiabilidad numérica (número de condición y
-   comparación ecuaciones normales / SVD).
+   hessiano definido positivo) y confiabilidad numérica (número de condición de X).
 4. R7: RMSE sobre los puntos de PRUEBA (que no se usaron en nada de lo anterior),
    en 0–45 °C y en 0–10 °C, con análisis del error.
 
@@ -172,19 +171,14 @@ for c in CANALES:
     for j, (theta, ee) in enumerate(zip(ajuste["theta"], ajuste["error_estandar"])):
         filas_coef.append({
             "canal": c, "parametro": f"θ{j}", "valor": theta, "error_estandar": ee,
-            "error_relativo_%": 100 * ee / abs(theta),
         })
 
     d = ajuste["diagnostico"]
     filas_diag.append({
         "canal": c,
-        "gradiente máx. (∇J)": d["norma_gradiente"],
-        "gradiente relativo": d["norma_gradiente_relativa"],
+        "gradiente relativo": d["gradiente_relativo"],
         "λ mín. hessiano": d["autovalor_min_hessiano"],
-        "λ máx. hessiano": d["autovalor_max_hessiano"],
         "cond(X)": d["numero_condicion_X"],
-        "cond(XᵀX)": d["numero_condicion_XtX"],
-        "dif. normales vs SVD": d["dif_rel_max_normales_vs_SVD"],
     })
 
     # ---- R7: evaluación en los puntos de prueba ----
@@ -215,7 +209,7 @@ tabla_0_10 = pd.DataFrame(filas_0_10)
 tabla_ip = pd.DataFrame(filas_ip)
 
 print("\n========== R6: COEFICIENTES ==========")
-print(tabla_coef[["canal", "parametro", "valor", "error_estandar", "error_relativo_%"]]
+print(tabla_coef[["canal", "parametro", "valor", "error_estandar"]]
       .to_string(index=False, float_format=lambda v: f"{v:.6g}"))
 print("\n========== R6: OPTIMALIDAD Y CONFIABILIDAD NUMÉRICA ==========")
 print(tabla_diag.to_string(index=False, float_format=lambda v: f"{v:.3e}"))
@@ -349,9 +343,9 @@ Coeficientes con su incertidumbre (error estándar = raíz de la diagonal de cov
 
 {a_markdown(tabla_coef, "{:.6g}")}
 
-Condiciones de optimalidad (∇J = −2Xᵀr ≈ 0; ∇²J = 2XᵀX con autovalores > 0 → mínimo
-global único) y confiabilidad numérica (número de condición y diferencia relativa
-entre las ecuaciones normales y la SVD):
+- **Gradiente relativo ≈ 0** (∇J = −2Xᵀr): se está en un punto donde J no baja más.
+- **λ mín. del hessiano > 0** (∇²J = 2XᵀX): ese punto es un mínimo, y es único.
+- **cond(X) pequeño**: la inversa (XᵀX)⁻¹ se calculó sin perder precisión.
 
 {a_markdown(tabla_diag, "{:.3g}")}
 
