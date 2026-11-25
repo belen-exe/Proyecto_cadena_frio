@@ -1,0 +1,56 @@
+{
+  "descripcion": "Detector PCA de E3 (R12). Todo fijado SOLO con entrenamiento.csv. Datos SIMULADOS.",
+  "Origen": "SIMULADO",
+  "archivos_leidos": [
+    "E3_eventos/datos/entrenamiento.csv"
+  ],
+  "n_muestras_usadas": 1791,
+  "intervalo_t_s_usado": [
+    9.0,
+    1799.0
+  ],
+  "ventana_suavizado_s": 10,
+  "criterio_k": "varianza acumulada >= 0.9",
+  "percentil_umbral": 99.5,
+  "K_persistencia": 3,
+  "mu": [
+    4.947494043362575,
+    5.097005630770907,
+    4.753608930517182
+  ],
+  "s": [
+    0.21689879787406946,
+    0.21260371487603497,
+    0.21309424794156093
+  ],
+  "P": [
+    [
+      0.5770706003090104,
+      0.8067504769070187,
+      -0.1270558549193863
+    ],
+    [
+      0.5774120076023945,
+      -0.5130496061636336,
+      -0.635118473272438
+    ],
+    [
+      0.5775680875321718,
+      -0.29314462237202643,
+      0.7618932567222205
+    ]
+  ],
+  "autovalores": [
+    2.964305015686268,
+    0.01934627202183222,
+    0.01634871229190271
+  ],
+  "k": 1,
+  "umbral_T2": 2.548821259351099,
+  "umbral_Q": 0.17806063057998708,
+  "R14": {
+    "informacion_conservada": 0.9881016718954218,
+    "factor_compresion": 3.0,
+    "error_reconstruccion_Q_medio": 0.03567505411590484
+  }
+}

@@ -337,22 +337,6 @@ def main():
 
         print(f"Generado: {ruta.relative_to(RAIZ_REPO)}  ({len(tabla)} filas)")
 
-        if nombre == "prueba":
-            # Resumen del efecto de cada apertura (solo informativo, usa la verdad).
-            print("  Calentamiento real por apertura [°C] (sensor 1, 2, 3):")
-            t = np.array(verdad["t_s"])
-            for tipo, _, inicio, fin in eventos:
-                if tipo != "apertura":
-                    continue
-                antes = t == inicio
-                despues = t == fin
-                subida = [
-                    np.array(verdad[f"T_real_sensor_{i + 1}_C"])[despues][0]
-                    - np.array(verdad[f"T_real_sensor_{i + 1}_C"])[antes][0]
-                    for i in range(NUM_SENSORES)
-                ]
-                print(f"    t = {inicio:5d} s: " + ", ".join(f"{s:+.3f}" for s in subida))
-
     # Tabla de eventos de la sesión de prueba
     tabla_eventos = pd.DataFrame(
         EVENTOS_PRUEBA, columns=["tipo", "sensor", "t_inicio_s", "t_fin_s"]
