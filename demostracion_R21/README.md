@@ -117,7 +117,63 @@ Consecuencias que conviene saber explicar:
 - R13 exige ≤ 60 s en aperturas y ≤ 20 s en desconexiones; todos los casos de abajo
   quedan muy por debajo.
 
-## 4. Antes de la sustentación
+## 4. Cómo leer la salida serie
+
+Cada segundo el ESP32 escribe una fila con 12 columnas separadas por comas:
+
+```
+t_ms,adc_1,adc_2,adc_3,T_1,T_2,T_3,T2,Q,alarma,t_proc_us,Origen
+```
+
+| Columna | Unidad | Qué significa | Valor típico en estado normal |
+|---|---|---|---|
+| `t_ms` | ms | **Marca de tiempo**: milisegundos desde que arrancó el ESP32 (`millis()`). Sube de 1000 en 1000 porque Ts = 1 s; si faltara una fila, se notaría un salto de 2000 (pérdida de muestras, R2). | 549, 1549, 2549, … |
+| `adc_1`, `adc_2`, `adc_3` | cuentas (0–4095) | **Lectura cruda** del ADC de 12 bits en GPIO34, 35 y 32. Es el voltaje del divisor convertido en número. Cuanto **más caliente**, **menor** la cuenta (≈ 40 cuentas por °C cerca de 5 °C). **4095** = pin en 3V3 (sensor desconectado). | 2955, 2942, 2963 |
+| `T_1`, `T_2`, `T_3` | °C | **Temperatura calibrada** de cada canal con los coeficientes de E1: T = 1/(θ0 + θ1·L) − 273,15. `NA` si el canal es inválido (ADC ≥ 4090 o ≤ 5). | 4,92 / 5,07 / 4,77 |
+| `T2` | — (sin unidad) | **Estadístico T² del PCA**: qué tan lejos están los 3 sensores, **juntos**, de la temperatura normal de entrenamiento. Sube si toda la caja se calienta o se enfría. Umbral: **2,55**. `NA` mientras la ventana de 10 s no esté llena (al arrancar, o con un canal inválido). | ≈ 0,01 |
+| `Q` | — (sin unidad) | **Estadístico Q del PCA** (error de reconstrucción): cuánto **se rompe el patrón** "los 3 sensores se mueven juntos". Sube si un sensor se separa de los otros, como al abrir la tapa. Umbral: **0,178**. `NA` en los mismos casos que `T2`. | ≈ 0,02 |
+| `alarma` | 0 / 1 | **1** si la muestra fue anómala (T² o Q sobre su umbral, o canal inválido) **3 veces seguidas** (K = 3). Es lo que enciende el LED. | 0 |
+| `t_proc_us` | µs | **Tiempo de procesamiento** del ciclo (lectura de los 3 ADC + calibración + detector), medido con `micros()`. Se usa en R20. Es el tiempo que reporta Wokwi, no una placa real. | ≈ 390–450 (de 1 000 000 disponibles) |
+| `Origen` | — | Siempre `SIMULADO`: marca exigida por el enunciado para todo dato que no sea real. | SIMULADO |
+
+Las líneas que empiezan por `#` no son datos sino mensajes: el de arranque, la memoria
+libre (`ESP.getFreeHeap()`, para R20), `# ALARMA en t_ms=…: causa` cuando se enciende la
+alarma y `# Fin de la alarma en t_ms=…` cuando se apaga.
+
+### Ejemplos de filas y cómo leerlas
+
+```
+549,2955,2942,2963,4.9185,5.0670,4.7651,NA,NA,0,750,SIMULADO
+```
+**Recién arrancado:** las temperaturas ya salen, pero `T2` y `Q` están en `NA` porque el
+promedio de 10 s todavía no tiene 10 muestras. No hay alarma.
+
+```
+20549,2955,2942,2963,4.9185,5.0670,4.7651,0.0055,0.0244,0,444,SIMULADO
+```
+**Estado normal:** `T2` = 0,0055 < 2,55 y `Q` = 0,024 < 0,178. LED apagado.
+
+```
+45549,2913,2942,2963,5.9082,5.0670,4.7651,2.1180,13.3642,1,443,SIMULADO
+# ALARMA en t_ms=45549: Q sobre el umbral (patron entre sensores roto, p. ej. tapa abierta)
+```
+**Tapa abierta** (sensor 1 subido a 6,0 °C): `adc_1` bajó de 2955 a 2913 y `T_1` subió
+≈ 1 °C mientras los otros dos siguen igual. El patrón se rompe: `Q` = 13,4, unas 75 veces
+el umbral. `T2` = 2,1 todavía no pasa su umbral, porque solo un sensor cambió. Alarma
+y LED encendidos.
+
+```
+5549,2955,2942,4095,4.9185,5.0670,NA,NA,NA,1,389,SIMULADO
+# ALARMA en t_ms=2549: sensor desconectado
+```
+**Sensor 3 desconectado** (pin en 3V3): `adc_3` = 4095, `T_3` = `NA`. Sin los 3 canales
+no se puede calcular el PCA, así que `T2` y `Q` también salen en `NA`. La alarma se
+enciende por la regla de desconexión, sin pasar por el PCA, a los 2 s del inicio.
+
+(Los valores de `t_ms` y `t_proc_us` de estos ejemplos son ilustrativos; los ADC, las
+temperaturas, T² y Q son los que da el firmware con esos deslizadores.)
+
+## 5. Antes de la sustentación
 
 1. Ejecute `python 1_electronica/generar_parametros.py` (copia al firmware la
    calibración de E1 y el detector de E3) y compile el firmware (`pio run` en
@@ -127,7 +183,7 @@ Consecuencias que conviene saber explicar:
 3. Compruebe que arranca **sin alarma** con los deslizadores en 5,0 / 5,3 / 4,8 °C
    y espere unos 15 s a que `T2` y `Q` dejen de ser `NA`.
 
-## 5. Ejemplos para probar en la sustentación
+## 6. Ejemplos para probar en la sustentación
 
 Partiendo siempre del estado normal (5,0 / 5,3 / 4,8 °C). "Retardo" es el tiempo desde
 que se mueve el deslizador hasta que se enciende el LED; "apagado" es el tiempo desde
@@ -177,7 +233,7 @@ Qué demuestra cada grupo:
 Para mover "los 3 juntos", cambie los tres deslizadores lo más rápido posible; si se
 mueven uno por uno, durante unos segundos el patrón se rompe y también puede saltar Q.
 
-## 6. Evidencia que debe quedar en esta carpeta
+## 7. Evidencia que debe quedar en esta carpeta
 
 - [ ] `captura_demo.csv`: texto completo del monitor serie durante la demostración.
 - [ ] `demo_led_encendido.png`: captura de pantalla de Wokwi con el LED encendido y el mensaje `# ALARMA`.
