@@ -75,8 +75,8 @@
     ["esp:35", "ntc2:OUT", "blue", []],
 
     ["esp:3V3", "ntc3:VCC", "red", []],
-    ["esp:GND.1", "ntc3:GND", "black", []],
-    ["esp:32", "ntc3:OUT", "blue", []]
+    ["esp:GND.1", "ntc3:GND", "black", []]
+    
   ],
   "dependencies": {}
 }

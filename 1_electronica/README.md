@@ -127,7 +127,9 @@ la misma captura de R20 (ver abajo), porque incluye una apertura simulada.
 2. Deje correr al menos **2 minutos** (R20 pide al menos 50 muestras). Durante la
    corrida, para que la comparación incluya alarmas:
    - a los ~30 s suba el sensor 1 a 6,0 °C durante ~20 s y vuélvalo a 5,0 °C;
-   - a los ~80 s desconecte ~10 s el cable OUT de un sensor y vuelva a conectarlo.
+   - para incluir una desconexión, grabe otra corrida con el pin del sensor 3 conectado a 3V3
+     (`["esp:32", "esp:3V3", "blue", []]` en `diagram.json`). No quite solo el cable OUT:
+     en Wokwi el pin queda al aire y lee valores al azar, no 4095.
 3. Copie todo el monitor serie en `1_electronica/pruebas_simulacion/captura_R20.csv`.
 4. Ejecute `python 1_electronica/validar_R20.py`.
 

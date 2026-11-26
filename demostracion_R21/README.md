@@ -29,9 +29,17 @@ Cada canal es un **divisor de voltaje** (módulo `wokwi-ntc-temperature-sensor`)
 - El ADC convierte el voltaje en una cuenta: adc = 4095 · R_NTC / (R_fijo + R_NTC).
   De ahí el firmware despeja L = ln(adc / (4095 − adc)) = ln(R_NTC / R_fijo), que es
   la variable que usa la calibración de E1.
-- **Sensor desconectado:** si se suelta el cable OUT, la entrada queda conectada solo a
-  3V3 a través de R_fijo y el ADC marca **4095**. Por eso una lectura ≥ 4090 (o ≤ 5,
-  un corto) se trata como canal inválido.
+- **Sensor desconectado:** en el diseño de R1 el R_fijo va en la placa, junto al ESP32,
+  y el NTC al final del cable. Si el cable del NTC se corta, la entrada queda conectada
+  solo a 3V3 a través de R_fijo y el ADC marca **4095**. Por eso una lectura ≥ 4090
+  (o ≤ 5, un corto a GND) se trata como canal inválido.
+- **Cómo simularlo en Wokwi:** en Wokwi el R_fijo viene *dentro* del módulo, así que
+  quitar el cable OUT **no** sirve: el pin queda al aire y lee valores al azar (en una
+  prueba, entre 1300 y 2060 cuentas, que parecen 25–43 °C). El firmware no lo reconoce
+  como desconexión y solo lo atrapa el PCA, a los ≈ 11 s y con el mensaje de "tapa
+  abierta". Para simular el corte real, conecte el pin a 3V3 en `diagram.json`:
+  cambie `["esp:32", "ntc3:OUT", "blue", []]` por `["esp:32", "esp:3V3", "blue", []]`.
+  Así el ADC lee 4095, como con el cable cortado de verdad.
 - **Pines GPIO34, 35 y 32:** son del ADC1, que funciona aunque se active el Wi-Fi
   (el ADC2 no). GPIO34 y 35 son solo de entrada, ideales para leer sensores.
 - **LED de alarma:** GPIO2 → resistor de 220 Ω → LED → GND. La corriente es
@@ -105,8 +113,8 @@ que se vuelve al estado normal hasta que se apaga.
 | 1 | Dejar correr 20 s en estado normal | LED apagado, `alarma = 0`, `Q` ≈ 0,02 |
 | 2 | **"Abrir la tapa":** subir el sensor 1 a **6,0 °C** | A los **≈ 3 s**: LED encendido y `# ALARMA en t_ms=…: Q sobre el umbral…` |
 | 3 | **"Cerrar la tapa":** volver el sensor 1 a 5,0 °C | A los **≈ 8 s**: `# Fin de la alarma`, LED apagado |
-| 4 | Desconectar el cable OUT del sensor 3 | ADC = 4095, `T_3 = NA`, alarma a los **2 s** con `sensor desconectado` |
-| 5 | Volver a conectarlo | La alarma se apaga y `T2`/`Q` quedan en `NA` 10 s mientras se llena la ventana |
+| 4 | "Cortar el cable" del sensor 3: en `diagram.json` cambiar `ntc3:OUT` por `esp:3V3` en la línea de `esp:32` (Wokwi reinicia) | Desde el arranque: `adc_3 = 4095`, `T_3 = NA`, alarma a los **2 s** con `sensor desconectado` |
+| 5 | Volver a poner `ntc3:OUT` | Arranca normal; `T2`/`Q` en `NA` los primeros 10 s mientras se llena la ventana |
 
 ### Más casos (por si el jurado pregunta)
 
@@ -125,8 +133,8 @@ que se vuelve al estado normal hasta que se apaga.
 | Toda la caja se calienta | los 3 suben 0,5 °C | 0,04 | 5,2 | sí, **solo por T²** | 9 s | 2 s |
 | Toda la caja se calienta mucho | los 3 suben 1,0 °C | 0,06 | 21 | sí, solo por T² | 5 s | 6 s |
 | Toda la caja se enfría | los 3 bajan 0,5 °C | 0,02 | 5,9 | sí, solo por T² | 8 s | 3 s |
-| Desconexión breve | cable OUT suelto 2 s | — | — | **no** (solo 2 muestras, K = 3) | — | — |
-| Desconexión | cable OUT suelto ≥ 3 s | — | — | sí | 2 s | inmediato |
+| Desconexión breve | pin en 3V3 durante 2 s | — | — | **no** (solo 2 muestras, K = 3) | — | — |
+| Desconexión | pin en 3V3 ≥ 3 s | — | — | sí | 2 s | inmediato |
 | Pulso de 1 s | sensor 1 → 6,0 °C durante 1 s | 0,11 | 0,01 | **no** (el promedio lo diluye) | — | — |
 
 Qué demuestra cada grupo:
